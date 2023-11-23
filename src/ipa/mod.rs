@@ -1,7 +1,4 @@
-use std::{
-    marker::PhantomData,
-    ops::Mul,
-};
+use std::{marker::PhantomData, ops::Mul};
 
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::Field;

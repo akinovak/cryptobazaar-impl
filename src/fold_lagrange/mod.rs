@@ -16,11 +16,14 @@ use ark_poly::{
 };
 use std::marker::PhantomData;
 
-use self::structs::{Proof, Error};
+use self::structs::{Error, Proof};
 use self::{structs::Instance, tr::Transcript};
+use crate::acc::{
+    structs::{Instance as AccInstance, Witness as AccWitness},
+    Argument as AccArgument,
+};
 use crate::univariate_sumcheck::structs::{Instance as UVInstance, Witness as UVWitness};
 use crate::univariate_sumcheck::UnivariateSumcheck;
-use crate::acc::{Argument as AccArgument, structs::{Instance as AccInstance, Witness as AccWitness}};
 use crate::{
     kzg::{Kzg, PK as KzgPk, VK as KzgVk},
     utils::folding::compute_folding_coeffs,
@@ -85,9 +88,7 @@ impl<const N: usize, const LOG_N: usize, E: Pairing> Argument<N, LOG_N, E> {
             acc_cm,
         };
 
-        let acc_witness = AccWitness {
-            acc,
-        };
+        let acc_witness = AccWitness { acc };
 
         let acc_proof = AccArgument::prove(&acc_instance, &acc_witness, pk);
 

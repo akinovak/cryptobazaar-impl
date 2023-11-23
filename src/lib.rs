@@ -8,3 +8,4 @@ pub mod pedersen_schnorr;
 pub mod transcript;
 pub mod univariate_sumcheck;
 pub mod utils;
+pub mod zk_log_derivative;
