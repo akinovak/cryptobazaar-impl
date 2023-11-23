@@ -47,7 +47,6 @@ impl<C: CurveGroup> Transcript<C> {
         &mut self,
         f_opening: &C::ScalarField,
         s_opening: &C::ScalarField,
-        b_opening_zero: &C::ScalarField,
         b_opening: &C::ScalarField,
         q_opening: &C::ScalarField,
     ) {
@@ -58,9 +57,6 @@ impl<C: CurveGroup> Transcript<C> {
 
         s_opening.serialize_uncompressed(&mut data).unwrap();
         self.tr.send_message(b"s_opening", &data);
-
-        b_opening_zero.serialize_uncompressed(&mut data).unwrap();
-        self.tr.send_message(b"b_opening_zero", &data);
 
         b_opening.serialize_uncompressed(&mut data).unwrap();
         self.tr.send_message(b"b_opening", &data);

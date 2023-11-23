@@ -36,7 +36,6 @@ pub struct Proof<C: CurveGroup> {
 
     pub f_opening: C::ScalarField,
     pub s_opening: C::ScalarField,
-    pub b_opening_zero: C::ScalarField,
     pub b_opening: C::ScalarField,
     pub q_opening: C::ScalarField,
 

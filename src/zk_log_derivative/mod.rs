@@ -131,17 +131,10 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
 
         let f_opening = witness.f.evaluate(&mu);
         let s_opening = index.s.evaluate(&mu);
-        let b_opening_zero = b.evaluate(&E::ScalarField::zero());
         let b_opening = b.evaluate(&mu);
         let q_opening = q.evaluate(&mu);
 
-        tr.send_openings(
-            &f_opening,
-            &s_opening,
-            &b_opening_zero,
-            &b_opening,
-            &q_opening,
-        );
+        tr.send_openings(&f_opening, &s_opening, &b_opening, &q_opening);
         let separation_challenge = tr.get_separation_challenge();
 
         let q_0 = &b
@@ -163,7 +156,6 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
             q_cm,
             f_opening,
             s_opening,
-            b_opening_zero,
             b_opening,
             q_opening,
             q_0,
@@ -181,6 +173,7 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
     where
         Func: Fn(E::ScalarField) -> E::ScalarField,
     {
+        let domain = GeneralEvaluationDomain::<E::ScalarField>::new(N).unwrap();
         let mut tr = Transcript::new(b"log-derivative");
         tr.send_v_index(index);
         tr.send_instance(instance);
@@ -188,6 +181,8 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
         tr.send_blinders_sum(&proof.gamma);
         let beta = tr.get_beta();
         let relation_at_beta = relation(beta);
+        let b_0 =
+            (relation_at_beta + proof.gamma) * domain.size_as_field_element().inverse().unwrap();
 
         tr.send_b_and_q(&proof.b_cm, &proof.q_cm);
         let mu = tr.get_mu();
@@ -195,7 +190,6 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
         tr.send_openings(
             &proof.f_opening,
             &proof.s_opening,
-            &proof.b_opening_zero,
             &proof.b_opening,
             &proof.q_opening,
         );
@@ -203,7 +197,7 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
 
         Kzg::verify(
             &[proof.b_cm],
-            &[proof.b_opening_zero],
+            &[b_0],
             proof.q_0,
             E::ScalarField::zero(),
             E::ScalarField::one(),
@@ -225,18 +219,89 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
         )
         .unwrap();
 
-        let domain = GeneralEvaluationDomain::<E::ScalarField>::new(N).unwrap();
         let formation_eq = {
             let zh_eval = domain.evaluate_vanishing_polynomial(mu);
             proof.b_opening * (beta * proof.s_opening + proof.f_opening) - E::ScalarField::one()
                 == proof.q_opening * zh_eval
         };
 
-        let sumcheck_eq = {
-            let n_inv = domain.size_as_field_element().inverse().unwrap();
-            proof.b_opening_zero == (relation_at_beta + proof.gamma) * n_inv
+        assert!(formation_eq);
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod log_derivative_tests {
+    use std::ops::Mul;
+
+    use ark_bn254::{Bn254, Fr as F, G1Projective, G2Projective};
+    use ark_ec::Group;
+    use ark_ff::{batch_inversion, Field, One, Zero};
+    use ark_poly::{
+        univariate::DensePolynomial, DenseUVPolynomial, EvaluationDomain, GeneralEvaluationDomain,
+    };
+
+    use crate::{
+        kzg::{Kzg, PK, VK},
+        utils::srs::unsafe_setup_from_tau,
+    };
+
+    use super::{
+        structs::{Instance, Witness},
+        Argument,
+    };
+
+    const N: usize = 16;
+    const B: usize = 4;
+
+    #[test]
+    fn test_log_derivative() {
+        let domain = GeneralEvaluationDomain::<F>::new(N).unwrap();
+
+        let tau = F::from(17u64);
+        let srs = unsafe_setup_from_tau::<G1Projective>(N - 1, tau);
+        let x_g2 = G2Projective::generator().mul(tau);
+
+        let pk = PK::<Bn254> { srs: srs.clone() };
+        let vk = VK::<Bn254>::new(x_g2);
+
+        let index_v = Argument::<N, B, Bn254>::index_v(&pk);
+        let index_p = Argument::<N, B, Bn254>::index_p();
+
+        // let's make f such that it has just one 1 and 14 zeros
+        let mut f_evals = vec![F::zero(); N - B];
+        f_evals[3] = F::one();
+
+        let mut blinders: Vec<_> = (0..B).map(|i| F::from((i + 10) as u64)).collect();
+        let mut blinders_cloned = blinders.clone();
+        f_evals.append(&mut blinders);
+
+        let f = DensePolynomial::from_coefficients_slice(&domain.ifft(&f_evals));
+        let f_cm = Kzg::commit(&pk, &f);
+
+        let instance = Instance::<G1Projective> { f_cm };
+
+        let witness = Witness { f };
+
+        // RHS = 1/(beta + 1) + (N - B - 1)/(beta)
+        let relation = |beta: F| {
+            let beta_inv = beta.inverse().unwrap();
+            let beta_plus_one_inv = (F::one() + beta).inverse().unwrap();
+            let n_minus_one = F::from((N - B - 1) as u64);
+
+            beta_plus_one_inv + n_minus_one * beta_inv
         };
 
-        Ok(())
+        let proof = Argument::<N, B, _>::prove(&index_p, &index_v, &instance, &witness, &pk);
+
+        /* */
+        {
+            batch_inversion(&mut blinders_cloned);
+            let sum: F = blinders_cloned.iter().sum();
+            assert_eq!(sum, proof.gamma);
+        }
+
+        let result = Argument::<N, B, _>::verify(&index_v, &instance, &proof, &vk, &relation);
+        assert!(result.is_ok());
     }
 }
