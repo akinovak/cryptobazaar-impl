@@ -11,7 +11,7 @@
 use std::marker::PhantomData;
 
 use ark_ec::pairing::Pairing;
-use ark_ff::{FftField, Field, One, Zero};
+use ark_ff::{FftField, Field, One, Zero, batch_inversion};
 use ark_poly::{
     univariate::DensePolynomial, DenseUVPolynomial, EvaluationDomain, GeneralEvaluationDomain,
     Polynomial,
@@ -19,7 +19,7 @@ use ark_poly::{
 
 use crate::{
     kzg::{Kzg, PK as KzgPk},
-    utils::powers_of_x,
+    utils::{powers_of_x, evaluate_vanishing_over_extended_coset},
 };
 
 use self::{
@@ -81,13 +81,14 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
 
     pub fn prove(
         witness: &Witness<E::ScalarField>,
-        v_index: &VerifierIndex<E::G1>, // just to hash
+        // v_index: &VerifierIndex<E::G1>, // just to hash
         index: &ProverIndex<E::ScalarField>,
         pk: &KzgPk<E>,
     ) -> Proof<E::G1> {
+        let k = 2; 
         let domain = GeneralEvaluationDomain::<E::ScalarField>::new(N).unwrap();
-        let domain_2n = GeneralEvaluationDomain::<E::ScalarField>::new(2 * N).unwrap();
-        let coset_2n_domain = domain_2n.get_coset(E::ScalarField::GENERATOR).unwrap();
+        let domain_kn = GeneralEvaluationDomain::<E::ScalarField>::new(k * N).unwrap();
+        let coset_kn_domain = domain_kn.get_coset(E::ScalarField::GENERATOR).unwrap();
 
         let mut tr = Transcript::<E::G1>::new(b"gates-transcript");
 
@@ -102,30 +103,34 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         let alpha = tr.get_quotient_challenge();
         let alpha_pows = powers_of_x(alpha, 4);
 
-        let bid_coset_evals = coset_2n_domain.fft(&witness.bid);
+        let bid_coset_evals = coset_kn_domain.fft(&witness.bid);
         let bid_coset_evals = Oracle(&bid_coset_evals);
 
-        let f_coset_evals = coset_2n_domain.fft(&witness.f);
-        let f_coset_evals: Oracle<'_, _> = Oracle(&f_coset_evals);
+        let f_coset_evals = coset_kn_domain.fft(&witness.f);
+        let f_coset_evals = Oracle(&f_coset_evals);
 
-        let r_coset_evals = coset_2n_domain.fft(&witness.r);
+        let r_coset_evals = coset_kn_domain.fft(&witness.r);
         let r_coset_evals = Oracle(&r_coset_evals);
 
-        let r_inv_coset_evals = coset_2n_domain.fft(&witness.r_inv);
+        let r_inv_coset_evals = coset_kn_domain.fft(&witness.r_inv);
         let r_inv_coset_evals = Oracle(&r_inv_coset_evals);
 
-        let diff_coset_evals = coset_2n_domain.fft(&witness.diff);
+        let diff_coset_evals = coset_kn_domain.fft(&witness.diff);
         let diff_coset_evals = Oracle(&diff_coset_evals);
 
-        let g_coset_evals = coset_2n_domain.fft(&witness.g);
+        let g_coset_evals = coset_kn_domain.fft(&witness.g);
         let g_coset_evals = Oracle(&g_coset_evals);
 
         let q_price_coset_evals = Oracle(&index.q_price_coset_evals);
         let l_p_next_coset_evals = Oracle(&index.l_p_next_coset_evals);
 
-        let mut q_coset_evals = vec![E::ScalarField::zero(); 2 * N];
+        let mut modulus_zh_coset_evals = evaluate_vanishing_over_extended_coset::<E::ScalarField>(N, k);
+        batch_inversion(&mut modulus_zh_coset_evals);
+
+        let mut q_coset_evals = vec![E::ScalarField::zero(); k * N];
         let one = E::ScalarField::one();
-        for i in 0..2 * N {
+
+        for i in 0..(k * N) {
             let q_price_i = q_price_coset_evals.query(i, 0);
             let bid_i = bid_coset_evals.query(i, 0);
             let bid_i_next = bid_coset_evals.query(i, 1);
@@ -149,11 +154,13 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             q_coset_evals[i] += alpha_pows[3] * l_p_next_coset_evals_i * bid_i;
 
             // rescale by zh_inv
-            // q_coset_evals[i] *= zh_inv
+            let zh_inv_i = modulus_zh_coset_evals[i % k];
+            q_coset_evals[i] *= zh_inv_i
         }
 
-        let q = coset_2n_domain.ifft(&q_coset_evals);
+        let q = coset_kn_domain.ifft(&q_coset_evals);
 
+        // hardcoded to 2 chunks
         let q_chunk_0 = DensePolynomial::from_coefficients_slice(&q[..N]);
         let q_chunk_1 = DensePolynomial::from_coefficients_slice(&q[N..]);
 
