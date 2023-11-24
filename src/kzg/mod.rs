@@ -13,7 +13,7 @@ pub struct Kzg<E: Pairing> {
 }
 
 pub struct PK<E: Pairing> {
-    pub(crate) srs: Vec<E::G1Affine>,
+    pub srs: Vec<E::G1Affine>,
 }
 
 pub struct VK<E: Pairing> {

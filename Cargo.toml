@@ -28,3 +28,7 @@ harness = false
 [[bench]]
 name = "auctioneer"
 harness = false
+
+[[bench]]
+name = "ipa"
+harness = false
