@@ -7,6 +7,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 pub enum Error {
     WellFormation,
     Sumcheck,
+    Openings,
 }
 
 #[derive(CanonicalSerialize, CanonicalDeserialize)]

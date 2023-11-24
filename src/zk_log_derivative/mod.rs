@@ -195,16 +195,19 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
         );
         let separation_challenge = tr.get_separation_challenge();
 
-        Kzg::verify(
+        let sumcheck_relation = Kzg::verify(
             &[proof.b_cm],
             &[b_0],
             proof.q_0,
             E::ScalarField::zero(),
             E::ScalarField::one(),
             vk,
-        )
-        .unwrap();
-        Kzg::verify(
+        );
+        if sumcheck_relation.is_err() {
+            return Err(Error::Sumcheck)
+        }
+
+        let openings_result = Kzg::verify(
             &[instance.f_cm, index.s_cm, proof.b_cm, proof.q_cm],
             &[
                 proof.f_opening,
@@ -216,8 +219,10 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
             mu,
             separation_challenge,
             vk,
-        )
-        .unwrap();
+        );
+        if openings_result.is_err() {
+            return Err(Error::Openings)
+        }
 
         let formation_eq = {
             let zh_eval = domain.evaluate_vanishing_polynomial(mu);
@@ -225,7 +230,10 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
                 == proof.q_opening * zh_eval
         };
 
-        assert!(formation_eq);
+        if !formation_eq {
+            return Err(Error::WellFormation)
+        }
+        
         Ok(())
     }
 }
