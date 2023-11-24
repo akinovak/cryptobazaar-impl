@@ -1,30 +1,19 @@
 use std::{marker::PhantomData, ops::Mul};
 
 use ark_ec::{AffineRepr, CurveGroup};
-use ark_ff::Field;
-use ark_std::cfg_iter;
+use ark_ff::{Field, Zero};
+use ark_std::{cfg_iter, rand::RngCore, UniformRand};
 
-use crate::utils::is_pow_2;
+use crate::utils::{is_pow_2, powers_of_x};
+use crate::pedersen_schnorr::{structs::{Instance as PSInstance, Witness as PSWitness}, Argument as PSArgument};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-pub struct PedersenCommitment<const N: usize, C: CurveGroup> {
-    ck: [C::Affine; N],
-}
+use self::{structs::{Instance, Witness, Proof}, tr::Transcript};
 
-impl<const N: usize, C: CurveGroup> PedersenCommitment<N, C> {
-    pub fn new(basis: &[C::Affine], h: C::Affine) -> Self {
-        assert_eq!(basis.len(), N - 1);
-        Self {
-            ck: [basis, &[h]].concat().try_into().unwrap(),
-        }
-    }
-
-    pub fn commit(&self, x: &[C::ScalarField], r: C::ScalarField) -> C {
-        C::msm(&self.ck, &[x, &[r]].concat()).unwrap()
-    }
-}
+pub mod structs;
+mod tr;
 
 #[derive(Debug)]
 pub enum FoldError {
@@ -95,92 +84,169 @@ impl<C: AffineRepr> Fold for AffFold<C> {
     }
 }
 
-pub struct DoubleInnerProduct<C: CurveGroup> {
+pub struct DoubleInnerProduct<const N: usize, const LOG_N: usize, C: CurveGroup> {
     _c: PhantomData<C>,
 }
 
-impl<C: CurveGroup> DoubleInnerProduct<C> {
-    pub fn run(x: &[C::ScalarField], b: &[C::Affine]) -> Result<(), FoldError> {
-        assert_eq!(x.len(), b.len());
-        assert!(is_pow_2(x.len()));
-
-        let l = x.len().ilog2();
-
-        let c = C::msm(b, x).unwrap();
-        let mut c_fold = c.clone();
-
-        let challenges = (0..l)
-            .map(|i| C::ScalarField::from(10 + i))
-            .collect::<Vec<C::ScalarField>>();
-
-        let mut x_folded = x.clone().to_vec();
-        let mut b_folded = b.clone().to_vec();
-
+impl<const N: usize, const LOG_N: usize, C: CurveGroup> DoubleInnerProduct<N, LOG_N, C> {
+    pub fn prove<R: RngCore>(
+        instance: &Instance<N, C>, 
+        witness: &Witness<N, C::ScalarField>, 
+        rng: &mut R
+    ) -> Proof<LOG_N, C> {
         #[cfg(feature = "parallel")]
         let num_chunks = rayon::current_num_threads();
         #[cfg(not(feature = "parallel"))]
         let num_chunks = 1;
 
-        for i in 0..l as usize {
-            let x_left = &x_folded[..x_folded.len() / 2];
-            let x_right = &x_folded[x_folded.len() / 2..];
+        let mut acc_blinders_1 = C::ScalarField::zero();
+        let mut acc_blinders_2 = C::ScalarField::zero();
 
-            let b_left = &b_folded[..b_folded.len() / 2];
-            let b_right = &b_folded[b_folded.len() / 2..];
+        let mut l_1_msgs = Vec::<C::Affine>::with_capacity(LOG_N);
+        let mut l_2_msgs = Vec::<C::Affine>::with_capacity(LOG_N);
+        let mut r_1_msgs = Vec::<C::Affine>::with_capacity(LOG_N);
+        let mut r_2_msgs = Vec::<C::Affine>::with_capacity(LOG_N);
 
-            let chunk_size = if num_chunks <= x_left.len() {
-                x_left.len() / num_chunks
+        let mut tr = Transcript::<N, LOG_N, _>::new(b"double-ipa");
+        tr.send_instance(instance);
+
+        let r = tr.get_r();
+        let r_pows = powers_of_x(r, N);
+
+        let mut c1_fold: C = instance.ac.clone().into();
+        let mut c2_fold = C::msm(&instance.c, &r_pows).unwrap();
+
+        let mut a_folded = witness.a.clone().to_vec();
+        let mut b1_folded = instance.base_1.clone().to_vec();
+        let b2_folded: Vec<C> = instance.base_2.iter().zip(r_pows.iter()).map(|(&bi, ri)| bi.mul(ri)).collect();
+        let mut b2_folded: Vec<C::Affine> = C::normalize_batch(&b2_folded);
+
+        for _ in 0..LOG_N as usize {
+            let a_left = &a_folded[..a_folded.len() / 2];
+            let a_right = &a_folded[a_folded.len() / 2..];
+
+            let b1_left = &b1_folded[..b1_folded.len() / 2];
+            let b1_right = &b1_folded[b1_folded.len() / 2..];
+
+            let b2_left = &b2_folded[..b2_folded.len() / 2];
+            let b2_right = &b2_folded[b2_folded.len() / 2..];
+
+            let chunk_size = if num_chunks <= a_left.len() {
+                a_left.len() / num_chunks
             } else {
                 1
             };
 
             #[cfg(feature = "parallel")]
-            let (x_left_chunks, b_right_chunks) = (
-                x_left.par_chunks(chunk_size),
-                b_right.par_chunks(chunk_size),
+            let (x_left_chunks, b1_right_chunks, b2_right_chunks) = (
+                a_left.par_chunks(chunk_size),
+                b1_right.par_chunks(chunk_size),
+                b2_right.par_chunks(chunk_size)
             );
             #[cfg(feature = "parallel")]
-            let (x_right_chunks, b_left_chunks) = (
-                x_right.par_chunks(chunk_size),
-                b_left.par_chunks(chunk_size),
+            let (x_right_chunks, b1_left_chunks, b2_left_chunks) = (
+                a_right.par_chunks(chunk_size),
+                b1_left.par_chunks(chunk_size),
+                b2_left.par_chunks(chunk_size)
             );
-            #[cfg(not(feature = "parallel"))]
-            let (x_left_chunks, b_right_chunks) =
-                (x_left.chunks(chunk_size), b_right.chunks(chunk_size));
-            #[cfg(not(feature = "parallel"))]
-            let (x_right_chunks, b_left_chunks) =
-                (x_right.chunks(chunk_size), b_left.chunks(chunk_size));
 
-            let left_msg: C = x_left_chunks
-                .zip(b_right_chunks)
+            #[cfg(not(feature = "parallel"))]
+            let (x_left_chunks, b1_right_chunks, b2_right_chunks) =
+                (x_left.chunks(chunk_size), b1_right.chunks(chunk_size), b2_right.chunks(chunk_size));
+            #[cfg(not(feature = "parallel"))]
+            let (x_right_chunks, b1_left_chunks, b2_left_chunks) =
+                (x_right.chunks(chunk_size), b1_left.chunks(chunk_size), b2_left.chunks(chunk_size));
+
+            let l_1: C = x_left_chunks.clone()
+                .zip(b1_right_chunks)
                 .map(|(xli, bri)| C::msm(bri, xli).unwrap())
                 .sum();
-            let right_msg: C = x_right_chunks
-                .zip(b_left_chunks)
+            let r_1: C = x_right_chunks.clone()
+                .zip(b1_left_chunks)
                 .map(|(xli, bri)| C::msm(bri, xli).unwrap())
                 .sum();
 
-            // let left_msg = C::msm(b_right, x_left).unwrap();
-            // let right_msg = C::msm(b_left, x_right).unwrap();
+            let l_2: C = x_left_chunks
+                .zip(b2_right_chunks)
+                .map(|(xli, bri)| C::msm(bri, xli).unwrap())
+                .sum();
+            let r_2: C = x_right_chunks
+                .zip(b2_left_chunks)
+                .map(|(xli, bri)| C::msm(bri, xli).unwrap())
+                .sum();
 
-            // send left and right
-            // derive challenge
-            let alpha = challenges[i];
+            let blinder_l1 = C::ScalarField::rand(rng);
+            let blinder_r1 = C::ScalarField::rand(rng);
+
+            let blinder_l2 = C::ScalarField::rand(rng);
+            let blinder_r2 = C::ScalarField::rand(rng);
+
+            let l_1: C::Affine = (l_1 + instance.h_base.mul(&blinder_l1)).into();
+            l_1_msgs.push(l_1);
+
+            let r_1: C::Affine = (r_1 + instance.h_base.mul(&blinder_r1)).into();
+            r_1_msgs.push(r_1);
+
+            let l_2: C::Affine = (l_2 + instance.h_base.mul(&blinder_l2)).into();
+            l_2_msgs.push(l_2);
+
+            let r_2: C::Affine = (r_2 + instance.h_base.mul(&blinder_r2)).into();
+            r_2_msgs.push(r_2);
+
+            tr.send_ls_rs(&l_1, &r_1, &l_2, &r_2);
+            let alpha = tr.get_alpha_i();
+            let alpha_inv = alpha.inverse().unwrap();
+
+            acc_blinders_1 += alpha_inv * blinder_l1 + alpha * blinder_r1;
+            acc_blinders_2 += alpha_inv * blinder_l2 + alpha * blinder_r2;
 
             // fold vectors
-            x_folded = FFold::fold_vec(&x_folded, alpha)?;
-            b_folded = AffFold::fold_vec(&b_folded, alpha.inverse().unwrap())?;
+            a_folded = FFold::fold_vec(&a_folded, alpha).unwrap();
+            b1_folded = AffFold::fold_vec(&b1_folded, alpha_inv).unwrap();
+            b2_folded = AffFold::fold_vec(&b2_folded, alpha_inv).unwrap();
 
             // derive new cm
-            c_fold = left_msg.mul(alpha.inverse().unwrap()) + c_fold + right_msg.mul(alpha);
+            c1_fold = l_1.mul(alpha_inv) + c1_fold + r_1.mul(alpha);
+            c2_fold = l_2.mul(alpha_inv) + c2_fold + r_2.mul(alpha);
         }
 
-        assert_eq!(b_folded.len(), 1);
-        assert_eq!(x_folded.len(), 1);
+        // sanity 
+        {
+            assert_eq!(b1_folded.len(), 1);
+            assert_eq!(b2_folded.len(), 1);
+    
+            assert_eq!(a_folded.len(), 1);
+    
+            let lhs_1 = b1_folded[0].mul(a_folded[0]) + instance.h_base.mul(&acc_blinders_1);
+            let lhs_2 = b2_folded[0].mul(a_folded[0]) + instance.h_base.mul(&acc_blinders_2);
+    
+            assert_eq!(lhs_1, c1_fold);
+            assert_eq!(lhs_2, c2_fold);
+        }
 
-        assert_eq!(b_folded[0].mul(x_folded[0]), c_fold);
+        let ps_instance = PSInstance::<C> {
+            q_base: b1_folded[0],
+            p_base: b2_folded[0],
+            h_base: instance.h_base,
+            x_1: c1_fold.into(),
+            x_2: c2_fold.into(),
+        };
 
-        Ok(())
+        let ps_witness = PSWitness {
+            a: a_folded[0],
+            r_1: acc_blinders_1,
+            r_2: acc_blinders_2,
+        };
+
+        let ps_proof = PSArgument::prove(&ps_instance, &ps_witness, rng);
+
+        Proof {
+            l_1: l_1_msgs.try_into().unwrap(),
+            r_1: r_1_msgs.try_into().unwrap(),
+            l_2: l_2_msgs.try_into().unwrap(),
+            r_2: r_2_msgs.try_into().unwrap(),
+            ps_proof,
+        }
     }
 }
 
@@ -189,21 +255,40 @@ mod ipa_tests {
     use std::ops::Mul;
 
     use ark_bn254::{Fr as F, G1Affine, G1Projective};
-    use ark_ec::Group;
+    use ark_ec::{Group, VariableBaseMSM};
     use ark_std::UniformRand;
 
-    use super::DoubleInnerProduct;
+    use super::{DoubleInnerProduct, structs::{Instance, Witness}};
+
+    const N: usize = 32; 
+    const LOG_N: usize = 5;
 
     #[test]
-    fn test_simple_ipa() {
+    fn test_double_ipa() {
         let mut rng = ark_std::test_rng();
-        let l = 7usize;
-        let n = 1 << l;
 
         let gen = G1Projective::generator();
-        let x: Vec<F> = (0..n).map(|_| F::rand(&mut rng)).collect();
-        let b: Vec<G1Affine> = (0..n).map(|_| gen.mul(F::rand(&mut rng)).into()).collect();
+        let a: Vec<F> = (0..N).map(|_| F::rand(&mut rng)).collect();
+        let base_1: Vec<G1Affine> = (0..N).map(|_| gen.mul(F::rand(&mut rng)).into()).collect();
+        let base_2: Vec<G1Affine> = (0..N).map(|_| gen.mul(F::rand(&mut rng)).into()).collect();
+        let h_base = gen.mul(F::rand(&mut rng));
 
-        DoubleInnerProduct::<G1Projective>::run(&x, &b).unwrap();
+        let ac = G1Projective::msm(&base_1, &a).unwrap();
+        let c: Vec<G1Affine> = base_2.iter().zip(a.iter()).map(|(&bi, ai)| bi.mul(ai).into()).collect();
+
+        let instance = Instance::<N, G1Projective> {
+            ac: ac.into(),
+            base_1: base_1.try_into().unwrap(),
+            base_2: base_2.try_into().unwrap(),
+            h_base: h_base.into(),
+            c: c.try_into().unwrap(),
+        };
+
+        let witness = Witness::<N, F> {
+            a: a.try_into().unwrap()
+        };
+
+        DoubleInnerProduct::<N, LOG_N, G1Projective>::prove::<_>(&instance, &witness, &mut rng);
+
     }
 }
