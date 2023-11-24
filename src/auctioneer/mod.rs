@@ -11,6 +11,7 @@ use rayon::prelude::*;
 mod av_oracle;
 pub(crate) mod enums;
 
+#[derive(Clone)]
 pub struct Auctioneer<const N: usize, const B: usize, C: CurveGroup> {
     state: OracleState,
     first_msgs_registered: usize,
