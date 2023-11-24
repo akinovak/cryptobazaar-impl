@@ -4,6 +4,7 @@ use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::{Field, Zero};
 use ark_std::{cfg_iter, rand::RngCore, UniformRand};
 
+use crate::utils::folding::compute_folding_coeffs;
 use crate::utils::{is_pow_2, powers_of_x};
 use crate::pedersen_schnorr::{structs::{Instance as PSInstance, Witness as PSWitness}, Argument as PSArgument};
 
@@ -248,6 +249,55 @@ impl<const N: usize, const LOG_N: usize, C: CurveGroup> DoubleInnerProduct<N, LO
             ps_proof,
         }
     }
+
+    pub fn verify(
+        instance: &Instance<N, C>, 
+        proof: &Proof<LOG_N, C>
+    ) {
+        let mut tr = Transcript::<N, LOG_N, _>::new(b"double-ipa");
+        tr.send_instance(instance);
+
+        let r = tr.get_r();
+        let r_pows = powers_of_x(r, N);
+
+        let mut c1_fold: C = instance.ac.clone().into();
+        let mut c2_fold = C::msm(&instance.c, &r_pows).unwrap();
+
+        let b2_rescaled: Vec<C> = instance.base_2.iter().zip(r_pows.iter()).map(|(&bi, ri)| bi.mul(ri)).collect();
+        let b2_rescaled: Vec<C::Affine> = C::normalize_batch(&b2_rescaled);
+
+        let mut alpha_invs = Vec::with_capacity(LOG_N);
+
+        for i in 0..LOG_N as usize {
+            tr.send_ls_rs(&proof.l_1[i], &proof.r_1[i], &proof.l_2[i], &proof.r_2[i]);
+
+            let alpha = tr.get_alpha_i();
+            let alpha_inv = alpha.inverse().unwrap();
+            alpha_invs.push(alpha_inv);
+
+            c1_fold = proof.l_1[i].mul(alpha_inv) + c1_fold + proof.r_1[i].mul(alpha);
+            c2_fold = proof.l_2[i].mul(alpha_inv) + c2_fold + proof.r_2[i].mul(alpha);
+        }
+
+        // now fold the basis b and check pedersen openings
+        // let alpha_invs_reversed: Vec<_> = alpha_invs.iter().rev().collect();
+        let fold_coeffs = compute_folding_coeffs::<C::ScalarField>(&alpha_invs);
+        let b2_folded = C::msm(&b2_rescaled, &fold_coeffs).unwrap();
+
+        // tmp before we send lagrange folding proof
+        let b1_folded = C::msm(&instance.base_1, &fold_coeffs).unwrap();
+
+        let ps_instance = PSInstance::<C> {
+            q_base: b1_folded.into(),
+            p_base: b2_folded.into(),
+            h_base: instance.h_base,
+            x_1: c1_fold.into(),
+            x_2: c2_fold.into(),
+        };
+
+        let res = PSArgument::verify(&ps_instance, &proof.ps_proof);
+        assert!(res.is_ok());
+    }
 }
 
 #[cfg(test)]
@@ -288,7 +338,7 @@ mod ipa_tests {
             a: a.try_into().unwrap()
         };
 
-        DoubleInnerProduct::<N, LOG_N, G1Projective>::prove::<_>(&instance, &witness, &mut rng);
-
+        let proof = DoubleInnerProduct::<N, LOG_N, G1Projective>::prove::<_>(&instance, &witness, &mut rng);
+        DoubleInnerProduct::<N, LOG_N, G1Projective>::verify(&instance, &proof);
     }
 }
