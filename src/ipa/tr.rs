@@ -21,7 +21,13 @@ impl<const N: usize, const LOG_N: usize, C: CurveGroup> Transcript<N, LOG_N, C> 
         self.tr.send_message(b"pedersen-schnorr-instance", &data);
     }
 
-    pub(crate) fn send_ls_rs(&mut self, l_1: &C::Affine, r_1: &C::Affine, l_2: &C::Affine, r_2: &C::Affine) {
+    pub(crate) fn send_ls_rs(
+        &mut self,
+        l_1: &C::Affine,
+        r_1: &C::Affine,
+        l_2: &C::Affine,
+        r_2: &C::Affine,
+    ) {
         let mut data = Vec::new();
 
         l_1.serialize_uncompressed(&mut data).unwrap();

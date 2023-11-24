@@ -11,5 +11,4 @@ pub fn powers_of_x<F: FftField>(x: F, n: usize) -> Vec<F> {
     std::iter::successors(Some(F::one()), |p| Some(*p * x))
         .take(n)
         .collect()
-
 }

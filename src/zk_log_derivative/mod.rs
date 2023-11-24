@@ -204,7 +204,7 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
             vk,
         );
         if sumcheck_relation.is_err() {
-            return Err(Error::Sumcheck)
+            return Err(Error::Sumcheck);
         }
 
         let openings_result = Kzg::verify(
@@ -221,7 +221,7 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
             vk,
         );
         if openings_result.is_err() {
-            return Err(Error::Openings)
+            return Err(Error::Openings);
         }
 
         let formation_eq = {
@@ -231,9 +231,9 @@ impl<const N: usize, const B: usize, E: Pairing> Argument<N, B, E> {
         };
 
         if !formation_eq {
-            return Err(Error::WellFormation)
+            return Err(Error::WellFormation);
         }
-        
+
         Ok(())
     }
 }
