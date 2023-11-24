@@ -1,20 +1,31 @@
 use std::ops::Mul;
 
-use ark_ec::{Group, VariableBaseMSM, pairing::Pairing};
-use ark_poly::{GeneralEvaluationDomain, EvaluationDomain};
+use ark_bn254::{Bn254, Fr as F, G1Affine, G1Projective};
+use ark_ec::{pairing::Pairing, Group, VariableBaseMSM};
+use ark_poly::{EvaluationDomain, GeneralEvaluationDomain};
 use ark_std::rand::RngCore;
-use ark_bn254::{Fr as F, G1Projective, Bn254, G1Affine};
 use ark_std::UniformRand;
-use cipher_bazaar::{utils::srs::unsafe_setup_from_tau, kzg::PK, ipa::{structs::{Instance, Witness}, DoubleInnerProduct}};
+use cipher_bazaar::{
+    ipa::{
+        structs::{Instance, Witness},
+        DoubleInnerProduct,
+    },
+    kzg::PK,
+    utils::srs::unsafe_setup_from_tau,
+};
 use criterion::{criterion_group, criterion_main, Criterion};
-
 
 /* RUN WITH: cargo bench --bench ipa */
 
 const N: usize = 8192;
 const LOG_N: usize = 13;
 
-fn prove<const N: usize, E: Pairing, R: RngCore>(instance: &Instance<N, E::G1>, witness: &Witness<N, E::ScalarField>, pk: &PK<E>, rng: &mut R) {
+fn prove<const N: usize, E: Pairing, R: RngCore>(
+    instance: &Instance<N, E::G1>,
+    witness: &Witness<N, E::ScalarField>,
+    pk: &PK<E>,
+    rng: &mut R,
+) {
     DoubleInnerProduct::<N, LOG_N, E>::prove::<_>(instance, witness, pk, rng);
 }
 
@@ -57,8 +68,9 @@ fn criterion_benchmark(criterion: &mut Criterion) {
     };
 
     let id = format!("proof {}", N);
-    criterion.bench_function(&id, |b| b.iter(|| prove::<N, Bn254, _>(&instance, &witness, &pk, &mut rng)));
-
+    criterion.bench_function(&id, |b| {
+        b.iter(|| prove::<N, Bn254, _>(&instance, &witness, &pk, &mut rng))
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);

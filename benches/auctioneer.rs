@@ -1,11 +1,11 @@
 use std::ops::Mul;
 
-use ark_bn254::{G1Projective, Fr as F, G1Affine};
-use ark_ec::{Group, AffineRepr};
+use ark_bn254::{Fr as F, G1Affine, G1Projective};
+use ark_ec::{AffineRepr, Group};
+use ark_ff::Zero;
 use ark_std::{test_rng, UniformRand};
 use cipher_bazaar::auctioneer::Auctioneer;
 use criterion::{criterion_group, criterion_main, Criterion};
-use ark_ff::Zero;
 
 /* RUN WITH: cargo bench --bench auctioneer */
 
@@ -85,18 +85,22 @@ fn setup_round_2<const N: usize, const B: usize>() -> Auctioneer<N, B, G1Project
     a
 }
 
-fn bench_second_round<const N: usize, const B: usize>(a: Auctioneer<N, B, G1Projective>) -> Vec<G1Affine> {
+fn bench_second_round<const N: usize, const B: usize>(
+    a: Auctioneer<N, B, G1Projective>,
+) -> Vec<G1Affine> {
     let mut a_clone = a.clone();
     a_clone.output_second_round()
 }
 
-fn bench_first_round<const N: usize, const B: usize>(a: Auctioneer<N, B, G1Projective>) -> Vec<Vec<G1Affine>> {
+fn bench_first_round<const N: usize, const B: usize>(
+    a: Auctioneer<N, B, G1Projective>,
+) -> Vec<Vec<G1Affine>> {
     let mut a_clone = a.clone();
     a_clone.output_first_round()
 }
 
 fn round_1(c: &mut Criterion) {
-    const N: usize = 100; 
+    const N: usize = 100;
     const B: usize = 30;
 
     let a = setup_round_1::<N, B>();
@@ -105,7 +109,7 @@ fn round_1(c: &mut Criterion) {
 }
 
 fn round_2(c: &mut Criterion) {
-    const N: usize = 100; 
+    const N: usize = 100;
     const B: usize = 30;
 
     let a = setup_round_2::<N, B>();
@@ -117,7 +121,6 @@ fn criterion_benchmark(c: &mut Criterion) {
     round_1(c);
     round_2(c);
 }
-
 
 criterion_group!(benches, criterion_benchmark);
 criterion_main!(benches);
