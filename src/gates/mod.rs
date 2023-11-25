@@ -2,7 +2,7 @@
     All gates exist over q_price(X) which is selector that is 1 on |p| - price range entires
     gate1: q_price(X)(r(X) * r_inv(X) - 1) = 0 mod zH(X)
     gate2: q_price(X)(g(X) - f(X) - bid(X)*r(X)) = 0 mod zH(X)
-    gate3: q_price(X)(diff(X) - bid(X) - bid(wX)) = 0 mod zH(X)
+    gate3: q_price(X)(diff(X) - bid(X) + bid(wX)) = 0 mod zH(X)
     gate4: L_(p+1)(X)bid(X) = 0 mod zH(X)
 
     degree of quotient will be n - 1 + n - 1 + n - 1 - n = 3n - 3 - n = 2n - 3, so we can work with subgroup of 2n
@@ -11,15 +11,15 @@
 use std::marker::PhantomData;
 
 use ark_ec::pairing::Pairing;
-use ark_ff::{FftField, Field, One, Zero, batch_inversion};
+use ark_ff::{batch_inversion, FftField, Field, One, Zero};
 use ark_poly::{
     univariate::DensePolynomial, DenseUVPolynomial, EvaluationDomain, GeneralEvaluationDomain,
     Polynomial,
 };
 
 use crate::{
-    kzg::{Kzg, PK as KzgPk},
-    utils::{powers_of_x, evaluate_vanishing_over_extended_coset},
+    kzg::{Kzg, PK as KzgPk, VK as KzgVk},
+    utils::{evaluate_vanishing_over_extended_coset, powers_of_x},
 };
 
 use self::{
@@ -81,16 +81,17 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
 
     pub fn prove(
         witness: &Witness<E::ScalarField>,
-        // v_index: &VerifierIndex<E::G1>, // just to hash
+        v_index: &VerifierIndex<E::G1>, // just to hash
         index: &ProverIndex<E::ScalarField>,
         pk: &KzgPk<E>,
     ) -> Proof<E::G1> {
-        let k = 2; 
+        let k = 2;
         let domain = GeneralEvaluationDomain::<E::ScalarField>::new(N).unwrap();
         let domain_kn = GeneralEvaluationDomain::<E::ScalarField>::new(k * N).unwrap();
         let coset_kn_domain = domain_kn.get_coset(E::ScalarField::GENERATOR).unwrap();
 
         let mut tr = Transcript::<E::G1>::new(b"gates-transcript");
+        tr.send_index(v_index);
 
         let bid_cm = Kzg::commit(pk, &witness.bid);
         let f_cm = Kzg::commit(pk, &witness.f);
@@ -124,7 +125,8 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         let q_price_coset_evals = Oracle(&index.q_price_coset_evals);
         let l_p_next_coset_evals = Oracle(&index.l_p_next_coset_evals);
 
-        let mut modulus_zh_coset_evals = evaluate_vanishing_over_extended_coset::<E::ScalarField>(N, k);
+        let mut modulus_zh_coset_evals =
+            evaluate_vanishing_over_extended_coset::<E::ScalarField>(N, k);
         batch_inversion(&mut modulus_zh_coset_evals);
 
         let mut q_coset_evals = vec![E::ScalarField::zero(); k * N];
@@ -148,7 +150,7 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             q_coset_evals[i] += alpha_pows[1] * q_price_i * (g_i - f_i - bid_i * r_i);
 
             // gate3
-            q_coset_evals[i] += alpha_pows[2] * q_price_i * (diff_i - bid_i - bid_i_next);
+            q_coset_evals[i] += alpha_pows[2] * q_price_i * (diff_i - bid_i + bid_i_next);
 
             // gate4
             q_coset_evals[i] += alpha_pows[3] * l_p_next_coset_evals_i * bid_i;
@@ -208,6 +210,8 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
                 witness.r_inv.clone(),
                 witness.diff.clone(),
                 witness.g.clone(),
+                q_chunk_0.clone(),
+                q_chunk_1.clone(),
             ],
             gamma,
             separation_challenge,
@@ -236,6 +240,117 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             q_chunk_1_opening,
             w_0,
             w_1,
+        }
+    }
+
+    pub fn verify(index: &VerifierIndex<E::G1>, proof: &Proof<E::G1>, vk: &KzgVk<E>) {
+        let domain = GeneralEvaluationDomain::<E::ScalarField>::new(N).unwrap();
+        let mut tr = Transcript::<E::G1>::new(b"gates-transcript");
+        tr.send_index(index);
+
+        tr.send_oracle_commitments(
+            &proof.bid_cm,
+            &proof.f_cm,
+            &proof.r_cm,
+            &proof.r_inv_cm,
+            &proof.diff_cm,
+            &proof.g_cm,
+        );
+        let alpha = tr.get_quotient_challenge();
+        let alpha_pows = powers_of_x(alpha, 4);
+
+        tr.send_q_chunks(&proof.q_chunk_0_cm, &proof.q_chunk_1_cm);
+        let gamma = tr.get_evaluation_challenge();
+
+        tr.send_oracle_openings(
+            &proof.q_price_opening,
+            &proof.bid_opening,
+            &proof.bid_shift_opening,
+            &proof.f_opening,
+            &proof.r_opening,
+            &proof.r_inv_opening,
+            &proof.diff_opening,
+            &proof.g_opening,
+            &proof.q_chunk_0_opening,
+            &proof.q_chunk_1_opening,
+        );
+
+        let separation_challenge = tr.get_separation_challenge();
+
+        let res_gamma = Kzg::verify(
+            &[proof.bid_cm],
+            &[proof.bid_shift_opening],
+            proof.w_0,
+            gamma,
+            separation_challenge,
+            vk,
+        );
+
+        assert!(res_gamma.is_ok());
+
+        let res_gamma_sh = Kzg::verify(
+            &[
+                index.q_price_cm,
+                proof.bid_cm,
+                proof.f_cm,
+                proof.r_cm,
+                proof.r_inv_cm,
+                proof.diff_cm,
+                proof.g_cm,
+                proof.q_chunk_0_cm,
+                proof.q_chunk_1_cm,
+            ],
+            &[
+                proof.q_price_opening,
+                proof.bid_opening,
+                proof.f_opening,
+                proof.r_opening,
+                proof.r_inv_opening,
+                proof.diff_opening,
+                proof.g_opening,
+                proof.q_chunk_0_opening,
+                proof.q_chunk_1_opening,
+            ],
+            proof.w_1,
+            gamma * domain.element(1),
+            E::ScalarField::one(),
+            vk,
+        );
+
+        assert!(res_gamma_sh.is_ok());
+
+        let zh_at_gamma = domain.evaluate_vanishing_polynomial(gamma);
+        let l_p_next_at_gamma = {
+            let n_inv = domain.size_as_field_element().inverse().unwrap();
+            let w_p_next = domain.element(P + 1);
+
+            let x_minus_w_p_next_inv = (gamma - w_p_next).inverse().unwrap();
+
+            w_p_next * n_inv * zh_at_gamma * x_minus_w_p_next_inv
+        };
+
+        let gamma_pow_n = gamma.pow(&[N as u64]);
+
+        let lhs = {
+            let g1 = alpha_pows[0]
+                * proof.q_price_opening
+                * (proof.r_opening * proof.r_inv_opening - E::ScalarField::one());
+            let g2 = alpha_pows[1]
+                * proof.q_price_opening
+                * (proof.g_opening - proof.f_opening - proof.bid_opening * proof.r_opening);
+            let g3 = alpha_pows[2]
+                * proof.q_price_opening
+                * (proof.diff_opening - proof.bid_opening + proof.bid_shift_opening);
+            let g4 = alpha_pows[3] * l_p_next_at_gamma * proof.bid_opening;
+
+            g1 + g2 + g3 + g4
+        };
+
+        let rhs =
+            { (proof.q_chunk_0_opening + gamma_pow_n * proof.q_chunk_1_opening) * zh_at_gamma };
+
+        if lhs != rhs {
+            panic!("Relation check failed")
         }
     }
 }

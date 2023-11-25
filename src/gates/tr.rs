@@ -3,6 +3,8 @@ use ark_serialize::CanonicalSerialize;
 
 use crate::transcript::TranscriptOracle;
 
+use super::structs::VerifierIndex;
+
 pub struct Transcript<C: CurveGroup> {
     tr: TranscriptOracle<C::ScalarField>,
 }
@@ -12,6 +14,12 @@ impl<C: CurveGroup> Transcript<C> {
         Self {
             tr: TranscriptOracle::new(init_label),
         }
+    }
+
+    pub(crate) fn send_index(&mut self, index: &VerifierIndex<C>) {
+        let mut data = Vec::new();
+        index.serialize_uncompressed(&mut data).unwrap();
+        self.tr.send_message(b"gates-v-index", &data);
     }
 
     pub(crate) fn send_oracle_commitments(

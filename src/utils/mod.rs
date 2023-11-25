@@ -1,5 +1,5 @@
 use ark_ff::FftField;
-use ark_poly::{GeneralEvaluationDomain, EvaluationDomain};
+use ark_poly::{EvaluationDomain, GeneralEvaluationDomain};
 
 pub mod folding;
 pub mod srs;
@@ -37,13 +37,15 @@ pub fn evaluate_vanishing_over_extended_coset<F: FftField>(n: usize, k: usize) -
 mod util_tests {
     use ark_bn254::Fr as F;
     use ark_ff::FftField;
-    use ark_poly::{GeneralEvaluationDomain, EvaluationDomain, univariate::DensePolynomial, Polynomial};
+    use ark_poly::{
+        univariate::DensePolynomial, EvaluationDomain, GeneralEvaluationDomain, Polynomial,
+    };
 
-    use crate::utils::evaluate_vanishing_over_extended_coset; 
+    use crate::utils::evaluate_vanishing_over_extended_coset;
 
     #[test]
     fn test_domain() {
-        let n = 16; 
+        let n = 16;
         let k = 4;
 
         let domain = GeneralEvaluationDomain::<F>::new(n).unwrap();
