@@ -86,12 +86,12 @@ impl<const P: usize, const N: usize, C: CurveGroup> BidEncoder<P, N, C> {
         C::normalize_batch(&result)
     }
 
-    pub fn to_second_av_round(&self) -> Vec<C::Affine> {
-        let gen = C::generator();
+    pub fn to_second_av_round(&self, basis: &[C]) -> Vec<C::Affine> {
         let result: Vec<_> = cfg_iter!(self.f)
             .zip(cfg_iter!(self.bid))
             .zip(cfg_iter!(self.r))
-            .map(|((&fi, &bi), &ri)| gen.mul(fi + bi*ri))
+            .zip(cfg_iter!(basis))
+            .map(|(((&fi, &bi), &ri), &gi)| gi.mul(fi + bi*ri))
             .collect();
         C::normalize_batch(&result)
     }
