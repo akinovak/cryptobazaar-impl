@@ -55,12 +55,12 @@ impl<E: Pairing> Kzg<E> {
         opening_challenge: E::ScalarField,
         separation_challenge: E::ScalarField,
     ) -> E::G1Affine {
-        let powers_of_gamma = std::iter::successors(Some(E::ScalarField::one()), |p| {
+        let powers_of_gamma = std::iter::successors(Some(separation_challenge), |p| {
             Some(*p * separation_challenge)
         });
 
         let mut batched = polys[0].clone();
-        for (p_i, gamma_pow_i) in polys.iter().skip(1).zip(powers_of_gamma.skip(1)) {
+        for (p_i, gamma_pow_i) in polys.iter().skip(1).zip(powers_of_gamma) {
             batched += (gamma_pow_i, p_i);
         }
 
@@ -79,30 +79,6 @@ impl<E: Pairing> Kzg<E> {
         }
 
         Kzg::commit(pk, &q)
-    }
-
-    pub fn tmp_open(
-        polys: &[DensePolynomial<E::ScalarField>],
-        opening_challenge: E::ScalarField,
-        separation_challenge: E::ScalarField,
-    ) -> DensePolynomial<E::ScalarField> {
-        let powers_of_gamma = std::iter::successors(Some(E::ScalarField::one()), |p| {
-            Some(*p * separation_challenge)
-            // Some(E::ScalarField::one())
-        });
-
-        let mut batched = polys[0].clone();
-        for (p_i, gamma_pow_i) in polys.iter().skip(1).zip(powers_of_gamma.skip(1)) {
-            batched += (gamma_pow_i, p_i);
-        }
-
-        let q = &batched
-            / &DensePolynomial::from_coefficients_slice(&[
-                -opening_challenge,
-                E::ScalarField::one(),
-            ]);
-
-        q
     }
 
     pub fn verify(
