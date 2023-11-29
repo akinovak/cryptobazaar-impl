@@ -3,6 +3,13 @@ use ark_ff::{FftField, Field};
 use ark_poly::univariate::DensePolynomial;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
+#[derive(Debug)]
+pub enum Error {
+    Opening,
+    ShiftedOpening,
+    RelationCheck,
+}
+
 pub struct Oracle<'a, F: Field>(pub(crate) &'a [F]);
 
 #[derive(CanonicalSerialize, CanonicalDeserialize)]

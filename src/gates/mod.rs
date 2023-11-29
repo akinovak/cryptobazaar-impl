@@ -23,7 +23,7 @@ use crate::{
 };
 
 use self::{
-    structs::{Oracle, Proof, ProverIndex, VerifierIndex, Witness},
+    structs::{Error, Oracle, Proof, ProverIndex, VerifierIndex, Witness},
     tr::Transcript,
 };
 
@@ -242,7 +242,11 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         }
     }
 
-    pub fn verify(index: &VerifierIndex<E::G1>, proof: &Proof<E::G1>, vk: &KzgVk<E>) {
+    pub fn verify(
+        index: &VerifierIndex<E::G1>,
+        proof: &Proof<E::G1>,
+        vk: &KzgVk<E>,
+    ) -> Result<(), Error> {
         let domain = GeneralEvaluationDomain::<E::ScalarField>::new(N).unwrap();
         let mut tr = Transcript::<E::G1>::new(b"gates-transcript");
         tr.send_index(index);
@@ -305,7 +309,9 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             vk,
         );
 
-        assert!(res_gamma.is_ok());
+        if !res_gamma.is_ok() {
+            return Err(Error::Opening);
+        }
 
         let res_gamma_sh = Kzg::verify(
             &[proof.bid_cm],
@@ -316,7 +322,9 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             vk,
         );
 
-        assert!(res_gamma_sh.is_ok());
+        if !res_gamma_sh.is_ok() {
+            return Err(Error::ShiftedOpening);
+        }
 
         let zh_at_gamma = domain.evaluate_vanishing_polynomial(gamma);
         let l_p_next_at_gamma = {
@@ -352,8 +360,10 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             { (proof.q_chunk_0_opening + gamma_pow_n * proof.q_chunk_1_opening) * zh_at_gamma };
 
         if lhs != rhs {
-            panic!("Relation check failed")
+            return Err(Error::RelationCheck);
         }
+
+        Ok(())
     }
 }
 
@@ -399,6 +409,7 @@ mod gates_test {
         let witness: Witness<F> = enc.to_gate_witness::<ChaCha20Rng>(SEED);
 
         let proof = GatesArgument::<N, P, Bn254>::prove(&witness, &v_index, &p_index, &pk);
-        GatesArgument::<N, P, Bn254>::verify(&v_index, &proof, &vk);
+        let result = GatesArgument::<N, P, Bn254>::verify(&v_index, &proof, &vk);
+        assert!(result.is_ok());
     }
 }
