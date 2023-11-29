@@ -393,7 +393,7 @@ mod gates_test {
         let bid = 9;
         let enc = BidEncoder::<P, N, G1Projective>::encode::<ChaCha20Rng>(bid, SEED);
 
-        let witness: Witness<F> = enc.to_gate_witness();
+        let witness: Witness<F> = enc.to_gate_witness::<ChaCha20Rng>(SEED);
 
         let proof = GatesArgument::<N, P, Bn254>::prove(&witness, &v_index, &p_index, &pk);
         GatesArgument::<N, P, Bn254>::verify(&v_index, &proof, &vk);

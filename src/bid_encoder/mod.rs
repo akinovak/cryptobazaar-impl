@@ -39,27 +39,33 @@ impl<const P: usize, const N: usize, C: CurveGroup> BidEncoder<P, N, C> {
         }
     }
 
-    // TODO: all loops until P and after that blinders!
-    pub fn to_gate_witness(&self) -> Witness<C::ScalarField> {
+    pub fn to_gate_witness<R: RngCore + SeedableRng>(&self, seed: R::Seed) -> Witness<C::ScalarField> {
+        let mut rng = R::from_seed(seed);
         let domain = GeneralEvaluationDomain::<C::ScalarField>::new(N).unwrap();
 
         let bid = DensePolynomial::from_coefficients_slice(&domain.ifft(&self.bid));
         let f = DensePolynomial::from_coefficients_slice(&domain.ifft(&self.f));
         let r = DensePolynomial::from_coefficients_slice(&domain.ifft(&self.r));
 
-        let mut r_inv_evals = self.r;
+        let mut r_inv_evals = self.r[0..P].to_vec();
         batch_inversion(&mut r_inv_evals);
+        let mut r_inv_blinders = Self::sample_blinders(&mut rng, N - P);
+        r_inv_evals.append(&mut r_inv_blinders);
+
         let r_inv = DensePolynomial::from_coefficients_slice(&domain.ifft(&r_inv_evals));
 
         let mut diff_evals = vec![C::ScalarField::zero(); N];
         let mut g_evals = vec![C::ScalarField::zero(); N];
 
-        for i in 0..(N - 1) {
+        for i in 0..P {
             diff_evals[i] = self.bid[i] - self.bid[i + 1];
             g_evals[i] = self.f[i] + self.bid[i] * self.r[i];
         }
 
-        g_evals[N - 1] = self.f[N - 1] + self.bid[N - 1] * self.r[N - 1];
+        let mut diff_blinders = Self::sample_blinders(&mut rng, N - P);
+        diff_evals.append(&mut diff_blinders);
+        let mut g_blinders = Self::sample_blinders(&mut rng, N - P);
+        g_evals.append(&mut g_blinders);
 
         let diff = DensePolynomial::from_coefficients_slice(&domain.ifft(&diff_evals));
         let g = DensePolynomial::from_coefficients_slice(&domain.ifft(&g_evals));
@@ -88,6 +94,10 @@ impl<const P: usize, const N: usize, C: CurveGroup> BidEncoder<P, N, C> {
             .map(|((&fi, &bi), &ri)| gen.mul(fi + bi*ri))
             .collect();
         C::normalize_batch(&result)
+    }
+
+    fn sample_blinders<R: RngCore>(rng: &mut R, n: usize) -> Vec<C::ScalarField> {
+        (0..n).map(|_| C::ScalarField::rand(rng)).collect()
     }
 }
 
