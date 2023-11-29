@@ -3,7 +3,7 @@
     gate1: q_price(X)(r(X) * r_inv(X) - 1) = 0 mod zH(X)
     gate2: q_price(X)(g(X) - f(X) - bid(X)*r(X)) = 0 mod zH(X)
     gate3: q_price(X)(diff(X) - bid(X) + bid(wX)) = 0 mod zH(X)
-    gate4: L_(p+1)(X)bid(X) = 0 mod zH(X)
+    gate4: L_p(X)bid(X) = 0 mod zH(X)
 
     degree of quotient will be n - 1 + n - 1 + n - 1 - n = 3n - 3 - n = 2n - 3, so we can work with subgroup of 2n
 */
@@ -44,9 +44,8 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
     fn make_q_price() -> DensePolynomial<E::ScalarField> {
         let domain = GeneralEvaluationDomain::<E::ScalarField>::new(N).unwrap();
 
-        let (n, p) = (N, P);
-        let mut q_price_evals = vec![E::ScalarField::one(); p];
-        let mut zeros = vec![E::ScalarField::zero(); n - p];
+        let mut q_price_evals = vec![E::ScalarField::one(); P];
+        let mut zeros = vec![E::ScalarField::zero(); N - P];
         q_price_evals.append(&mut zeros);
 
         DensePolynomial::from_coefficients_slice(&domain.ifft(&q_price_evals))
@@ -66,16 +65,16 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         let q_price = Self::make_q_price();
         let q_price_coset_evals = coset_2n_domain.fft(&q_price);
 
-        let mut l_p_next_evals = vec![E::ScalarField::zero(); N];
-        l_p_next_evals[P + 1] = E::ScalarField::one();
+        let mut l_p_evals = vec![E::ScalarField::zero(); N];
+        l_p_evals[P] = E::ScalarField::one();
 
-        let l_p_next = domain_n.ifft(&l_p_next_evals);
-        let l_p_next_coset_evals = coset_2n_domain.fft(&l_p_next);
+        let l_p = domain_n.ifft(&l_p_evals);
+        let l_p_coset_evals = coset_2n_domain.fft(&l_p);
 
         ProverIndex {
             q_price,
             q_price_coset_evals,
-            l_p_next_coset_evals,
+            l_p_coset_evals,
         }
     }
 
@@ -89,6 +88,11 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         let domain = GeneralEvaluationDomain::<E::ScalarField>::new(N).unwrap();
         let domain_kn = GeneralEvaluationDomain::<E::ScalarField>::new(k * N).unwrap();
         let coset_kn_domain = domain_kn.get_coset(E::ScalarField::GENERATOR).unwrap();
+
+        {
+            let vals = domain.fft(&witness.bid); 
+            assert_eq!(vals[P], E::ScalarField::zero());
+        }
 
         let mut tr = Transcript::<E::G1>::new(b"gates-transcript");
         tr.send_index(v_index);
@@ -123,7 +127,7 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         let g_coset_evals = Oracle(&g_coset_evals);
 
         let q_price_coset_evals = Oracle(&index.q_price_coset_evals);
-        let l_p_next_coset_evals = Oracle(&index.l_p_next_coset_evals);
+        let l_p_coset_evals = Oracle(&index.l_p_coset_evals);
 
         let mut modulus_zh_coset_evals =
             evaluate_vanishing_over_extended_coset::<E::ScalarField>(N, k);
@@ -141,7 +145,7 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             let f_i = f_coset_evals.query(i, 0);
             let diff_i = diff_coset_evals.query(i, 0);
             let g_i = g_coset_evals.query(i, 0);
-            let l_p_next_coset_evals_i = l_p_next_coset_evals.query(i, 0);
+            let l_p_i = l_p_coset_evals.query(i, 0);
 
             // gate1
             q_coset_evals[i] = alpha_pows[0] * q_price_i * (r_i * r_inv_i - one);
@@ -153,7 +157,7 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             // q_coset_evals[i] += alpha_pows[2] * q_price_i * (diff_i - bid_i + bid_i_next);
 
             // gate4
-            // q_coset_evals[i] += alpha_pows[3] * l_p_next_coset_evals_i * bid_i;
+            q_coset_evals[i] += alpha_pows[3] * l_p_i * bid_i;
 
             // rescale by zh_inv
             let zh_inv_i = modulus_zh_coset_evals[i % k];
@@ -322,11 +326,11 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         let zh_at_gamma = domain.evaluate_vanishing_polynomial(gamma);
         let l_p_next_at_gamma = {
             let n_inv = domain.size_as_field_element().inverse().unwrap();
-            let w_p_next = domain.element(P + 1);
+            let w_p = domain.element(P);
 
-            let x_minus_w_p_next_inv = (gamma - w_p_next).inverse().unwrap();
+            let x_minus_w_p_inv = (gamma - w_p).inverse().unwrap();
 
-            w_p_next * n_inv * zh_at_gamma * x_minus_w_p_next_inv
+            w_p * n_inv * zh_at_gamma * x_minus_w_p_inv
         };
 
         let gamma_pow_n = gamma.pow(&[N as u64]);
@@ -341,10 +345,9 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             let g3 = alpha_pows[2]
                 * proof.q_price_opening
                 * (proof.diff_opening - proof.bid_opening + proof.bid_shift_opening);
-            // let g4 = alpha_pows[3] * l_p_next_at_gamma * proof.bid_opening;
+            let g4 = alpha_pows[3] * l_p_next_at_gamma * proof.bid_opening;
 
-            // g1 + g2 + g3 + g4
-            g1 + g2
+            g1 + g2 + g4
         };
 
         let rhs =

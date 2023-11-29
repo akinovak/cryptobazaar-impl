@@ -13,7 +13,7 @@ pub struct VerifierIndex<C: CurveGroup> {
 pub struct ProverIndex<F: FftField> {
     pub q_price: DensePolynomial<F>,
     pub q_price_coset_evals: Vec<F>,
-    pub l_p_next_coset_evals: Vec<F>,
+    pub l_p_coset_evals: Vec<F>,
 }
 
 pub struct Witness<F: FftField> {
