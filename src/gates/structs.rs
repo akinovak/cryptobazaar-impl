@@ -5,7 +5,6 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 pub struct Oracle<'a, F: Field>(pub(crate) &'a [F]);
 
-
 #[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct VerifierIndex<C: CurveGroup> {
     pub q_price_cm: C::Affine,
