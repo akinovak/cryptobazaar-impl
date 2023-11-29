@@ -26,6 +26,7 @@ pub struct Witness<F: FftField> {
     pub(crate) b_poly: DensePolynomial<F>,
 }
 
+#[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct Proof<C: CurveGroup> {
     pub(crate) r_cm: C::Affine,
     pub(crate) q_cm: C::Affine,

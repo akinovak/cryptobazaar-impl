@@ -20,6 +20,7 @@ pub struct Witness<F: FftField> {
     pub acc: DensePolynomial<F>,
 }
 
+#[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct Proof<C: CurveGroup> {
     pub q: C::ScalarField,
     pub acc_opening: C::ScalarField,

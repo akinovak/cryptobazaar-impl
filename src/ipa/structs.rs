@@ -23,6 +23,7 @@ pub struct Witness<const N: usize, F: FftField> {
     pub a: [F; N],
 }
 
+#[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct Proof<const LOG_N: usize, C: CurveGroup> {
     pub l_1: [C::Affine; LOG_N],
     pub r_1: [C::Affine; LOG_N],

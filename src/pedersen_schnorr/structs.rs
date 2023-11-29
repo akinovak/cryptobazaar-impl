@@ -24,6 +24,7 @@ pub struct Witness<F: Field> {
     pub r_2: F,
 }
 
+#[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct Proof<C: CurveGroup> {
     pub rand_1: C::Affine,
     pub rand_2: C::Affine,

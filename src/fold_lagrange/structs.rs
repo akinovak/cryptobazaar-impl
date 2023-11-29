@@ -1,4 +1,5 @@
 use ark_ec::CurveGroup;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 use crate::acc::structs::Proof as AccProof;
 use crate::univariate_sumcheck::structs::Proof as UVProof;
@@ -30,6 +31,7 @@ pub struct Instance<const N: usize, const LOG_N: usize, C: CurveGroup> {
     pub challenges: [C::ScalarField; LOG_N],
 }
 
+#[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct Proof<C: CurveGroup> {
     pub p_cm: C::Affine,
     pub acc_cm: C::Affine,

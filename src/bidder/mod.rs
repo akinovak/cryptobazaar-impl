@@ -3,15 +3,21 @@ use rand::{RngCore, SeedableRng};
 
 use crate::{
     bid_encoder::BidEncoder,
-    gates::{structs::{Proof as GatesProof, Witness as GatesWitness, ProverIndex as GProverIndex, VerifierIndex as GVerifierIndex}, GatesArgument},
+    gates::{
+        structs::{
+            Proof as GatesProof, ProverIndex as GProverIndex, VerifierIndex as GVerifierIndex,
+            Witness as GatesWitness,
+        },
+        GatesArgument,
+    },
     kzg::PK as KzgPk,
 };
 
 pub struct Bidder<const P: usize, const N: usize, E: Pairing> {
     pk: KzgPk<E>,
-    gp_index: GProverIndex<E::ScalarField>, 
-    gv_index: GVerifierIndex<E::G1>, 
-    bid_encoder: Option<BidEncoder<P, N, E::G1>>
+    gp_index: GProverIndex<E::ScalarField>,
+    gv_index: GVerifierIndex<E::G1>,
+    bid_encoder: Option<BidEncoder<P, N, E::G1>>,
 }
 
 impl<const P: usize, const N: usize, E: Pairing> Bidder<P, N, E> {
@@ -19,17 +25,20 @@ impl<const P: usize, const N: usize, E: Pairing> Bidder<P, N, E> {
         let gp_index = GatesArgument::<N, P, E>::prover_index();
         let gv_index = GatesArgument::<N, P, E>::verifier_index(&pk);
         Self {
-            pk, 
-            gp_index, 
+            pk,
+            gp_index,
             gv_index,
-            bid_encoder: None, 
+            bid_encoder: None,
         }
     }
     pub fn encode<R: RngCore + SeedableRng>(&mut self, bid: usize, seed: R::Seed) {
         self.bid_encoder = Some(BidEncoder::encode::<R>(bid, seed));
     }
 
-    pub fn construct_bid_well_formation_proof<R: RngCore + SeedableRng>(&self, seed: R::Seed) -> GatesProof<E::G1> {
+    pub fn construct_bid_well_formation_proof<R: RngCore + SeedableRng>(
+        &self,
+        seed: R::Seed,
+    ) -> GatesProof<E::G1> {
         let bid_encoder = self.bid_encoder.as_ref().unwrap();
         let witness: GatesWitness<E::ScalarField> = bid_encoder.to_gate_witness::<R>(seed);
         GatesArgument::<N, P, E>::prove(&witness, &self.gv_index, &self.gp_index, &self.pk)
@@ -46,7 +55,5 @@ impl<const P: usize, const N: usize, E: Pairing> Bidder<P, N, E> {
     }
 
     // TODO: IPA proofs
-    pub fn prove_honest_execution() {
-
-    }
+    pub fn prove_honest_execution() {}
 }
