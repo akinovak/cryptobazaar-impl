@@ -301,7 +301,7 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             ],
             proof.w_0,
             gamma,
-            E::ScalarField::one(),
+            separation_challenge,
             vk,
         );
 
@@ -312,7 +312,7 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             &[proof.bid_shift_opening],
             proof.w_1,
             gamma * domain.element(1),
-            separation_challenge,
+            E::ScalarField::one(),
             vk,
         );
 
