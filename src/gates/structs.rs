@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use ark_ec::CurveGroup;
 use ark_ff::{FftField, Field};
 use ark_poly::univariate::DensePolynomial;
@@ -7,9 +5,6 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 pub struct Oracle<'a, F: Field>(pub(crate) &'a [F]);
 
-pub struct WitnessGenerator<F: Field> {
-    _f: PhantomData<F>,
-}
 
 #[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct VerifierIndex<C: CurveGroup> {

@@ -10,3 +10,4 @@ pub mod transcript;
 pub mod univariate_sumcheck;
 pub mod utils;
 pub mod zk_log_derivative;
+pub mod bid_encoder;
