@@ -32,7 +32,7 @@ mod tr;
 
 impl<'a, F: Field> Oracle<'a, F> {
     pub fn query(&self, i: usize, rotation: usize, extension: usize) -> F {
-        self.0[(i + rotation*extension) % self.0.len()]
+        self.0[(i + rotation * extension) % self.0.len()]
     }
 }
 
@@ -345,7 +345,7 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
 
             let g4 = alpha_pows[3] * l_p_next_at_gamma * proof.bid_opening;
 
-            g1 + g2 +g3 + g4
+            g1 + g2 + g3 + g4
         };
 
         let rhs =
@@ -361,21 +361,24 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
 mod gates_test {
     use std::ops::Mul;
 
-    use ark_bn254::{Fr as F, Bn254, G1Projective, G2Projective};
+    use ark_bn254::{Bn254, Fr as F, G1Projective, G2Projective};
     use ark_ec::Group;
     use rand_chacha::ChaCha20Rng;
 
-    use crate::{utils::srs::unsafe_setup_from_tau, kzg::{PK, VK}};
     use crate::bid_encoder::BidEncoder;
+    use crate::{
+        kzg::{PK, VK},
+        utils::srs::unsafe_setup_from_tau,
+    };
 
-    use super::{GatesArgument, structs::Witness};
+    use super::{structs::Witness, GatesArgument};
 
-    const P: usize = 10; 
+    const P: usize = 10;
     const N: usize = 16;
 
     const SEED: [u8; 32] = [
-        1, 0, 52, 0, 0, 0, 0, 0, 1, 0, 10, 0, 22, 32, 0, 0, 2, 0, 55, 49, 0, 11, 0, 0, 3, 0, 0,
-        0, 0, 0, 2, 92,
+        1, 0, 52, 0, 0, 0, 0, 0, 1, 0, 10, 0, 22, 32, 0, 0, 2, 0, 55, 49, 0, 11, 0, 0, 3, 0, 0, 0,
+        0, 0, 2, 92,
     ];
 
     #[test]

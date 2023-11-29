@@ -39,7 +39,10 @@ impl<const P: usize, const N: usize, C: CurveGroup> BidEncoder<P, N, C> {
         }
     }
 
-    pub fn to_gate_witness<R: RngCore + SeedableRng>(&self, seed: R::Seed) -> Witness<C::ScalarField> {
+    pub fn to_gate_witness<R: RngCore + SeedableRng>(
+        &self,
+        seed: R::Seed,
+    ) -> Witness<C::ScalarField> {
         let mut rng = R::from_seed(seed);
         let domain = GeneralEvaluationDomain::<C::ScalarField>::new(N).unwrap();
 
@@ -91,7 +94,7 @@ impl<const P: usize, const N: usize, C: CurveGroup> BidEncoder<P, N, C> {
             .zip(cfg_iter!(self.bid))
             .zip(cfg_iter!(self.r))
             .zip(cfg_iter!(basis))
-            .map(|(((&fi, &bi), &ri), &gi)| gi.mul(fi + bi*ri))
+            .map(|(((&fi, &bi), &ri), &gi)| gi.mul(fi + bi * ri))
             .collect();
         C::normalize_batch(&result)
     }

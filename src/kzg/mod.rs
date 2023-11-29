@@ -3,9 +3,13 @@ use std::{marker::PhantomData, ops::Mul};
 use ark_ec::{pairing::Pairing, Group, VariableBaseMSM};
 use ark_ff::One;
 use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
-use ark_serialize::{SerializationError, Valid};
 
 pub mod lagrange;
+
+#[derive(Debug)]
+pub enum Error {
+    PairingNot0,
+}
 
 /// Minimal KZG functionalities
 pub struct Kzg<E: Pairing> {
@@ -40,8 +44,9 @@ impl<E: Pairing> Kzg<E> {
             );
         }
 
-        let l = std::cmp::min(pk.srs.len(), poly.coeffs.len());
-        E::G1::msm(&pk.srs[..l], &poly.coeffs).unwrap().into()
+        E::G1::msm(&pk.srs[..poly.coeffs.len()], &poly.coeffs)
+            .unwrap()
+            .into()
     }
 
     pub fn open(
@@ -55,7 +60,7 @@ impl<E: Pairing> Kzg<E> {
         });
 
         let mut batched = polys[0].clone();
-        for (p_i, gamma_pow_i) in polys.iter().skip(1).zip(powers_of_gamma) {
+        for (p_i, gamma_pow_i) in polys.iter().skip(1).zip(powers_of_gamma.skip(1)) {
             batched += (gamma_pow_i, p_i);
         }
 
@@ -76,6 +81,30 @@ impl<E: Pairing> Kzg<E> {
         Kzg::commit(pk, &q)
     }
 
+    pub fn tmp_open(
+        polys: &[DensePolynomial<E::ScalarField>],
+        opening_challenge: E::ScalarField,
+        separation_challenge: E::ScalarField,
+    ) -> DensePolynomial<E::ScalarField> {
+        let powers_of_gamma = std::iter::successors(Some(E::ScalarField::one()), |p| {
+            Some(*p * separation_challenge)
+            // Some(E::ScalarField::one())
+        });
+
+        let mut batched = polys[0].clone();
+        for (p_i, gamma_pow_i) in polys.iter().skip(1).zip(powers_of_gamma.skip(1)) {
+            batched += (gamma_pow_i, p_i);
+        }
+
+        let q = &batched
+            / &DensePolynomial::from_coefficients_slice(&[
+                -opening_challenge,
+                E::ScalarField::one(),
+            ]);
+
+        q
+    }
+
     pub fn verify(
         commitments: &[E::G1Affine],
         evaluations: &[E::ScalarField],
@@ -83,7 +112,7 @@ impl<E: Pairing> Kzg<E> {
         opening_challenge: E::ScalarField,
         separation_challenge: E::ScalarField,
         vk: &VK<E>,
-    ) -> Result<(), SerializationError> {
+    ) -> Result<(), Error> {
         assert_eq!(commitments.len(), evaluations.len());
         let powers_of_gamma: Vec<_> = std::iter::successors(Some(E::ScalarField::one()), |p| {
             Some(*p * separation_challenge)
@@ -103,6 +132,7 @@ impl<E: Pairing> Kzg<E> {
             p(X) - y = q(X)•X - q(X)z
             p(X) - y + q(X)z = q(X)•X
             e([p] + z[q] - y[1], [1]) = e([q], [x])
+            e([p] + z[q] - y[1], [1])*e([q], -[x]) = 0
         */
 
         let lhs = batched_commitment
@@ -110,7 +140,12 @@ impl<E: Pairing> Kzg<E> {
             + E::G1::generator().mul(-batched_eval);
 
         let mlo = E::multi_miller_loop(&[lhs, opening_proof.into()], &[vk.g2, vk.neg_x_g2]);
-        E::final_exponentiation(mlo).unwrap().check()
+        let res = E::final_exponentiation(mlo).unwrap().0;
+        if res != E::TargetField::one() {
+            return Err(Error::PairingNot0);
+        }
+
+        Ok(())
     }
 }
 
