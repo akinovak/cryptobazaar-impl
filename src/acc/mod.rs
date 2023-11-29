@@ -57,7 +57,7 @@ impl<E: Pairing> Argument<E> {
 
         let q_0 = &witness.acc
             / &DensePolynomial::from_coefficients_slice(&[
-                E::ScalarField::one(),
+                -E::ScalarField::one(),
                 E::ScalarField::one(),
             ]);
         let q_0 = Kzg::commit(pk, &q_0);
