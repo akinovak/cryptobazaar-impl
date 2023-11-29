@@ -32,7 +32,7 @@ mod tr;
 
 impl<'a, F: Field> Oracle<'a, F> {
     pub fn query(&self, i: usize, rotation: usize) -> F {
-        self.0[(i + rotation) & self.0.len()]
+        self.0[(i + rotation) % self.0.len()]
     }
 }
 
@@ -352,5 +352,48 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         if lhs != rhs {
             panic!("Relation check failed")
         }
+    }
+}
+
+#[cfg(test)]
+mod gates_test {
+    use std::ops::Mul;
+
+    use ark_bn254::{Fr as F, Bn254, G1Projective, G2Projective};
+    use ark_ec::Group;
+    use rand_chacha::ChaCha20Rng;
+
+    use crate::{utils::srs::unsafe_setup_from_tau, kzg::{PK, VK}};
+    use crate::bid_encoder::BidEncoder;
+
+    use super::{GatesArgument, structs::Witness};
+
+    const P: usize = 10; 
+    const N: usize = 16;
+
+    const SEED: [u8; 32] = [
+        1, 0, 52, 0, 0, 0, 0, 0, 1, 0, 10, 0, 22, 32, 0, 0, 2, 0, 55, 49, 0, 11, 0, 0, 3, 0, 0,
+        0, 0, 0, 2, 92,
+    ];
+
+    #[test]
+    fn test_gates() {
+        let tau = F::from(17u64);
+        let srs = unsafe_setup_from_tau::<G1Projective>(N - 1, tau);
+        let x_g2 = G2Projective::generator().mul(tau);
+
+        let pk = PK::<Bn254> { srs: srs.clone() };
+        let vk = VK::<Bn254>::new(x_g2);
+
+        let v_index = GatesArgument::<N, P, Bn254>::verifier_index(&pk);
+        let p_index = GatesArgument::<N, P, Bn254>::prover_index();
+
+        let bid = 9;
+        let enc = BidEncoder::<P, N, G1Projective>::encode::<ChaCha20Rng>(bid, SEED);
+
+        let witness: Witness<F> = enc.to_gate_witness();
+
+        let proof = GatesArgument::<N, P, Bn254>::prove(&witness, &v_index, &p_index, &pk);
+        GatesArgument::<N, P, Bn254>::verify(&v_index, &proof, &vk);
     }
 }
