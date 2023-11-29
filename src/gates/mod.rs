@@ -31,8 +31,8 @@ pub mod structs;
 mod tr;
 
 impl<'a, F: Field> Oracle<'a, F> {
-    pub fn query(&self, i: usize, rotation: usize) -> F {
-        self.0[(i + rotation) % self.0.len()]
+    pub fn query(&self, i: usize, rotation: usize, extension: usize) -> F {
+        self.0[(i + rotation*extension) % self.0.len()]
     }
 }
 
@@ -89,11 +89,6 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         let domain_kn = GeneralEvaluationDomain::<E::ScalarField>::new(k * N).unwrap();
         let coset_kn_domain = domain_kn.get_coset(E::ScalarField::GENERATOR).unwrap();
 
-        {
-            let vals = domain.fft(&witness.bid); 
-            assert_eq!(vals[P], E::ScalarField::zero());
-        }
-
         let mut tr = Transcript::<E::G1>::new(b"gates-transcript");
         tr.send_index(v_index);
 
@@ -137,15 +132,15 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         let one = E::ScalarField::one();
 
         for i in 0..(k * N) {
-            let q_price_i = q_price_coset_evals.query(i, 0);
-            let bid_i = bid_coset_evals.query(i, 0);
-            let bid_i_next = bid_coset_evals.query(i, 1);
-            let r_i = r_coset_evals.query(i, 0);
-            let r_inv_i = r_inv_coset_evals.query(i, 0);
-            let f_i = f_coset_evals.query(i, 0);
-            let diff_i = diff_coset_evals.query(i, 0);
-            let g_i = g_coset_evals.query(i, 0);
-            let l_p_i = l_p_coset_evals.query(i, 0);
+            let q_price_i = q_price_coset_evals.query(i, 0, k);
+            let bid_i = bid_coset_evals.query(i, 0, k);
+            let bid_i_next = bid_coset_evals.query(i, 1, k);
+            let r_i = r_coset_evals.query(i, 0, k);
+            let r_inv_i = r_inv_coset_evals.query(i, 0, k);
+            let f_i = f_coset_evals.query(i, 0, k);
+            let diff_i = diff_coset_evals.query(i, 0, k);
+            let g_i = g_coset_evals.query(i, 0, k);
+            let l_p_i = l_p_coset_evals.query(i, 0, k);
 
             // gate1
             q_coset_evals[i] = alpha_pows[0] * q_price_i * (r_i * r_inv_i - one);
@@ -154,7 +149,7 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             q_coset_evals[i] += alpha_pows[1] * q_price_i * (g_i - f_i - bid_i * r_i);
 
             // gate3
-            // q_coset_evals[i] += alpha_pows[2] * q_price_i * (diff_i - bid_i + bid_i_next);
+            q_coset_evals[i] += alpha_pows[2] * q_price_i * (diff_i - bid_i + bid_i_next);
 
             // gate4
             q_coset_evals[i] += alpha_pows[3] * l_p_i * bid_i;
@@ -282,17 +277,6 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
         let separation_challenge = tr.get_separation_challenge();
 
         let res_gamma = Kzg::verify(
-            &[proof.bid_cm],
-            &[proof.bid_shift_opening],
-            proof.w_0,
-            gamma,
-            separation_challenge,
-            vk,
-        );
-
-        assert!(res_gamma.is_ok());
-
-        let res_gamma_sh = Kzg::verify(
             &[
                 index.q_price_cm,
                 proof.bid_cm,
@@ -315,9 +299,20 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
                 proof.q_chunk_0_opening,
                 proof.q_chunk_1_opening,
             ],
+            proof.w_0,
+            gamma,
+            E::ScalarField::one(),
+            vk,
+        );
+
+        assert!(res_gamma.is_ok());
+
+        let res_gamma_sh = Kzg::verify(
+            &[proof.bid_cm],
+            &[proof.bid_shift_opening],
             proof.w_1,
             gamma * domain.element(1),
-            E::ScalarField::one(),
+            separation_challenge,
             vk,
         );
 
@@ -339,15 +334,18 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             let g1 = alpha_pows[0]
                 * proof.q_price_opening
                 * (proof.r_opening * proof.r_inv_opening - E::ScalarField::one());
+
             let g2 = alpha_pows[1]
                 * proof.q_price_opening
                 * (proof.g_opening - proof.f_opening - proof.bid_opening * proof.r_opening);
+
             let g3 = alpha_pows[2]
                 * proof.q_price_opening
                 * (proof.diff_opening - proof.bid_opening + proof.bid_shift_opening);
+
             let g4 = alpha_pows[3] * l_p_next_at_gamma * proof.bid_opening;
 
-            g1 + g2 + g4
+            g1 + g2 +g3 + g4
         };
 
         let rhs =

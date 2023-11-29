@@ -39,6 +39,7 @@ impl<const P: usize, const N: usize, C: CurveGroup> BidEncoder<P, N, C> {
         }
     }
 
+    // TODO: all loops until P and after that blinders!
     pub fn to_gate_witness(&self) -> Witness<C::ScalarField> {
         let domain = GeneralEvaluationDomain::<C::ScalarField>::new(N).unwrap();
 
