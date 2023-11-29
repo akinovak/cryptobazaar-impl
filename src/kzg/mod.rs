@@ -18,14 +18,14 @@ pub struct PK<E: Pairing> {
 
 pub struct VK<E: Pairing> {
     g2: E::G2,
-    x_g2: E::G2,
+    neg_x_g2: E::G2,
 }
 
 impl<E: Pairing> VK<E> {
     pub fn new(x_g2: E::G2) -> Self {
         Self {
             g2: E::G2::generator(),
-            x_g2,
+            neg_x_g2: -x_g2,
         }
     }
 }
@@ -109,7 +109,7 @@ impl<E: Pairing> Kzg<E> {
             + opening_proof.mul(opening_challenge)
             + E::G1::generator().mul(-batched_eval);
 
-        let mlo = E::multi_miller_loop(&[lhs, opening_proof.into()], &[vk.g2, vk.x_g2]);
+        let mlo = E::multi_miller_loop(&[lhs, opening_proof.into()], &[vk.g2, vk.neg_x_g2]);
         E::final_exponentiation(mlo).unwrap().check()
     }
 }
