@@ -4,8 +4,11 @@ use ark_ff::{batch_inversion, One, Zero};
 use ark_poly::{
     univariate::DensePolynomial, DenseUVPolynomial, EvaluationDomain, GeneralEvaluationDomain,
 };
-use ark_std::UniformRand;
+use ark_std::{cfg_iter, UniformRand};
 use rand::{RngCore, SeedableRng};
+
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 pub struct BidEncoder<const P: usize, const N: usize, C: CurveGroup> {
     pub(crate) bid: [C::ScalarField; N],
@@ -72,7 +75,17 @@ impl<const P: usize, const N: usize, C: CurveGroup> BidEncoder<P, N, C> {
 
     pub fn to_first_av_round(&self) -> Vec<C::Affine> {
         let gen = C::generator();
-        let result: Vec<_> = self.f.iter().map(|fi| gen.mul(fi)).collect();
+        let result: Vec<_> = cfg_iter!(self.f).map(|fi| gen.mul(fi)).collect();
+        C::normalize_batch(&result)
+    }
+
+    pub fn to_second_av_round(&self) -> Vec<C::Affine> {
+        let gen = C::generator();
+        let result: Vec<_> = cfg_iter!(self.f)
+            .zip(cfg_iter!(self.bid))
+            .zip(cfg_iter!(self.r))
+            .map(|((&fi, &bi), &ri)| gen.mul(fi + bi*ri))
+            .collect();
         C::normalize_batch(&result)
     }
 }
