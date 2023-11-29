@@ -150,10 +150,10 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             q_coset_evals[i] += alpha_pows[1] * q_price_i * (g_i - f_i - bid_i * r_i);
 
             // gate3
-            q_coset_evals[i] += alpha_pows[2] * q_price_i * (diff_i - bid_i + bid_i_next);
+            // q_coset_evals[i] += alpha_pows[2] * q_price_i * (diff_i - bid_i + bid_i_next);
 
             // gate4
-            q_coset_evals[i] += alpha_pows[3] * l_p_next_coset_evals_i * bid_i;
+            // q_coset_evals[i] += alpha_pows[3] * l_p_next_coset_evals_i * bid_i;
 
             // rescale by zh_inv
             let zh_inv_i = modulus_zh_coset_evals[i % k];
@@ -341,9 +341,10 @@ impl<const N: usize, const P: usize, E: Pairing> GatesArgument<N, P, E> {
             let g3 = alpha_pows[2]
                 * proof.q_price_opening
                 * (proof.diff_opening - proof.bid_opening + proof.bid_shift_opening);
-            let g4 = alpha_pows[3] * l_p_next_at_gamma * proof.bid_opening;
+            // let g4 = alpha_pows[3] * l_p_next_at_gamma * proof.bid_opening;
 
-            g1 + g2 + g3 + g4
+            // g1 + g2 + g3 + g4
+            g1 + g2
         };
 
         let rhs =
