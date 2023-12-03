@@ -97,11 +97,14 @@ impl<const B: usize, C: CurveGroup> AVOracle<B, C> {
         assert_eq!(self.state, OracleState::Round1Completed);
 
         // compute msgs
-        let mut x = [-C::ScalarField::one(); B];
-        x[0] = C::ScalarField::zero();
+        // let mut x = [-C::ScalarField::one(); B];
+        // x[0] = C::ScalarField::zero();
+
+        let mut x = [C::ScalarField::one(); B];
+        x[B - 1] = C::ScalarField::zero();
 
         let mut outputs = vec![C::zero(); B];
-        outputs[0] = C::msm(&self.first_msgs, &x).unwrap();
+        outputs[B - 1] = C::msm(&self.first_msgs, &x).unwrap();
 
         /*
            0 -1 -1 -1
@@ -109,8 +112,9 @@ impl<const B: usize, C: CurveGroup> AVOracle<B, C> {
            1  1  0 -1
            1  1  1  0
         */
-        for i in 1..B {
-            outputs[i] = outputs[i - 1] + self.first_msgs[i - 1] + self.first_msgs[i];
+        for i in 0..(B - 1) {
+            let idx = B - 2 - i;
+            outputs[idx] = outputs[idx + 1] - self.first_msgs[idx + 1] - self.first_msgs[idx];
         }
 
         self.state = OracleState::Round2Ongoing;
