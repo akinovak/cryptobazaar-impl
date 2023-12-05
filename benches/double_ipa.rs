@@ -6,7 +6,7 @@ use ark_poly::{EvaluationDomain, GeneralEvaluationDomain};
 use ark_std::rand::RngCore;
 use ark_std::UniformRand;
 use cipher_bazaar::{
-    ipa::{
+    double_ipa::{
         structs::{Instance, Witness},
         DoubleInnerProduct,
     },
@@ -15,7 +15,7 @@ use cipher_bazaar::{
 };
 use criterion::{criterion_group, criterion_main, Criterion};
 
-/* RUN WITH: cargo bench --bench ipa */
+/* RUN WITH: cargo bench --bench double_ipa */
 
 const N: usize = 8192;
 const LOG_N: usize = 13;

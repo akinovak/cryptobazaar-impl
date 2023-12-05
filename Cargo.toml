@@ -32,5 +32,5 @@ name = "auctioneer"
 harness = false
 
 [[bench]]
-name = "ipa"
+name = "double_ipa"
 harness = false

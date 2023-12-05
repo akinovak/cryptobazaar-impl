@@ -5,7 +5,7 @@ pub mod bid_encoder;
 pub mod bidder;
 pub mod fold_lagrange;
 pub mod gates;
-pub mod ipa;
+pub mod double_ipa;
 pub mod kzg;
 pub mod pedersen_schnorr;
 pub mod transcript;
