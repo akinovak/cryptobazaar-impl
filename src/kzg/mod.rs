@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::Mul};
+use std::{marker::PhantomData, ops::Mul, collections::BTreeMap};
 
 use ark_ec::{pairing::Pairing, Group, VariableBaseMSM};
 use ark_ff::One;
@@ -21,8 +21,20 @@ pub struct PK<E: Pairing> {
 }
 
 pub struct VK<E: Pairing> {
-    g2: E::G2,
-    neg_x_g2: E::G2,
+    pub g2: E::G2,
+    pub neg_x_g2: E::G2,
+}
+
+pub struct DegreeCheckVK<E: Pairing> {
+    pub pk_max_degree: usize,
+    pub shifts: BTreeMap<usize, E::G2>
+}
+
+impl<E: Pairing> DegreeCheckVK<E> {
+    pub fn get_shift(&self, degree_bound: usize) -> Option<&E::G2> {
+        let shift_factor = self.pk_max_degree - degree_bound;
+        self.shifts.get(&shift_factor)
+    }
 }
 
 impl<E: Pairing> VK<E> {
@@ -127,13 +139,14 @@ impl<E: Pairing> Kzg<E> {
 
 #[cfg(test)]
 mod test_kzg {
-    use std::ops::Mul;
+    use std::{ops::Mul, collections::BTreeMap};
 
     use crate::utils::srs::unsafe_setup_from_tau;
     use ark_bn254::{Bn254, Fr as F, G1Projective, G2Projective};
-    use ark_ec::Group;
+    use ark_ec::{Group, pairing::Pairing};
     use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
     use ark_std::{test_rng, UniformRand};
+    use ark_ff::{Zero, Field};
 
     use super::{Kzg, PK, VK};
 
@@ -169,5 +182,38 @@ mod test_kzg {
 
         let verify_result = Kzg::verify(&[a_cm, b_cm], &[a_eval, b_eval], q, z, gamma, &vk);
         assert!(verify_result.is_ok());
+    }
+
+    #[test]
+    fn test_degree_bound() {
+        let n = 16;
+        let mut rng = test_rng();
+
+        let a_coeffs: Vec<F> = (0..n).map(|_| F::rand(&mut rng)).collect();
+        let a_poly = DensePolynomial::from_coefficients_slice(&a_coeffs);
+
+        let tau = F::from(100);
+        let srs = unsafe_setup_from_tau::<G1Projective>(2*n - 1, tau);
+
+        let shift_factor = srs.len() - 1 - (n - 1);
+        let tau_pow_shift = G2Projective::generator().mul(tau.pow(&[shift_factor as u64]));
+        let mut degree_check_vk_map: BTreeMap<usize, G2Projective> = BTreeMap::new();
+        degree_check_vk_map.insert(shift_factor, tau_pow_shift);
+
+        // we want to check that a is of degree <= n-1
+        let a_degree = {
+            let mut coeffs = a_poly.coeffs().clone().to_vec();
+            let mut shifted_coeffs = vec![F::zero(); shift_factor];
+            shifted_coeffs.append(&mut coeffs);
+            DensePolynomial::from_coefficients_slice(&shifted_coeffs)
+        };
+
+        let pk = PK::<Bn254> { srs: srs.clone() };
+        let a_cm = Kzg::commit(&pk, &a_poly);
+        let a_degree_cm = Kzg::commit(&pk, &a_degree);
+
+        let lhs = Bn254::pairing(a_cm, degree_check_vk_map.get(&shift_factor).unwrap());
+        let rhs = Bn254::pairing(a_degree_cm, G2Projective::generator());
+        assert_eq!(lhs, rhs);
     }
 }
