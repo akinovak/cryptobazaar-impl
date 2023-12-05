@@ -96,33 +96,44 @@ impl<E: Pairing> Argument<E> {
 
         // When integrated with more complex proofs this part will be merged with some multiopen argument
         let one = E::ScalarField::one();
-        Kzg::verify(
+        let kzg_at_one = Kzg::verify(
             &[instance.acc_cm],
             &[one.clone()],
             proof.q_0,
             one.clone(),
             one.clone(),
             vk,
-        )
-        .unwrap();
-        Kzg::verify(
+        );
+
+        if !kzg_at_one.is_ok() {
+            return Err(Error::OpeningFailed);
+        }
+
+        let kzg_at_beta = Kzg::verify(
             &[instance.acc_cm],
             &[proof.acc_opening],
             proof.q_1,
             beta,
             one.clone(),
             vk,
-        )
-        .unwrap();
-        Kzg::verify(
+        );
+
+        if !kzg_at_beta.is_ok() {
+            return Err(Error::OpeningFailed);
+        }
+
+        let kzg_at_beta_sh = Kzg::verify(
             &[instance.acc_cm],
             &[proof.acc_shifted_opening],
             proof.q_2,
             beta * domain.element(1),
             one.clone(),
             vk,
-        )
-        .unwrap();
+        );
+
+        if !kzg_at_beta_sh.is_ok() {
+            return Err(Error::OpeningFailed);
+        }
 
         let zh_eval = domain.evaluate_vanishing_polynomial(beta);
         let eq = {

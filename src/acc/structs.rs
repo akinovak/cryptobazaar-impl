@@ -5,7 +5,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 #[derive(Debug)]
 pub enum Error {
-    OpeningAtZeroNotOne,
+    OpeningFailed,
     RelationCheck,
 }
 
