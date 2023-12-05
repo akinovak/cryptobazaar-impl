@@ -4,26 +4,32 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 #[derive(Debug)]
 pub enum Error {
-    RelationCheckFailed,
+    Relation1,
+    Relation2,
 }
 
 #[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct Instance<C: CurveGroup> {
+    pub q_base: C::Affine,
     pub p_base: C::Affine,
     pub h_base: C::Affine,
 
-    pub x: C::Affine,
+    pub x_1: C::Affine,
+    pub x_2: C::Affine,
 }
 
 pub struct Witness<F: Field> {
-    pub x: F,
-    pub r: F,
+    pub a: F,
+    pub r_1: F,
+    pub r_2: F,
 }
 
 #[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct Proof<C: CurveGroup> {
-    pub blinder: C::Affine,
+    pub rand_1: C::Affine,
+    pub rand_2: C::Affine,
 
     pub z_1: C::ScalarField,
     pub z_2: C::ScalarField,
+    pub z_3: C::ScalarField,
 }

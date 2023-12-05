@@ -18,29 +18,17 @@ impl<const N: usize, const LOG_N: usize, C: CurveGroup> Transcript<N, LOG_N, C> 
     pub(crate) fn send_instance(&mut self, instance: &Instance<N, C>) {
         let mut data = Vec::new();
         instance.serialize_uncompressed(&mut data).unwrap();
-        self.tr.send_message(b"double-ipa-instance", &data);
+        self.tr.send_message(b"ipa-instance", &data);
     }
 
-    pub(crate) fn send_ls_rs(
-        &mut self,
-        l_1: &C::Affine,
-        r_1: &C::Affine,
-        l_2: &C::Affine,
-        r_2: &C::Affine,
-    ) {
+    pub(crate) fn send_l_r(&mut self, l: &C::Affine, r: &C::Affine) {
         let mut data = Vec::new();
 
-        l_1.serialize_uncompressed(&mut data).unwrap();
-        self.tr.send_message(b"l_1", &data);
+        l.serialize_uncompressed(&mut data).unwrap();
+        self.tr.send_message(b"l", &data);
 
-        r_1.serialize_uncompressed(&mut data).unwrap();
-        self.tr.send_message(b"r_1", &data);
-
-        l_2.serialize_uncompressed(&mut data).unwrap();
-        self.tr.send_message(b"l_2", &data);
-
-        r_2.serialize_uncompressed(&mut data).unwrap();
-        self.tr.send_message(b"r_2", &data);
+        r.serialize_uncompressed(&mut data).unwrap();
+        self.tr.send_message(b"r", &data);
     }
 
     pub(crate) fn get_alpha_i(&mut self) -> C::ScalarField {

@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::Mul, collections::BTreeMap};
+use std::{collections::BTreeMap, marker::PhantomData, ops::Mul};
 
 use ark_ec::{pairing::Pairing, Group, VariableBaseMSM};
 use ark_ff::One;
@@ -27,7 +27,7 @@ pub struct VK<E: Pairing> {
 
 pub struct DegreeCheckVK<E: Pairing> {
     pub pk_max_degree: usize,
-    pub shifts: BTreeMap<usize, E::G2>
+    pub shifts: BTreeMap<usize, E::G2>,
 }
 
 impl<E: Pairing> DegreeCheckVK<E> {
@@ -139,14 +139,14 @@ impl<E: Pairing> Kzg<E> {
 
 #[cfg(test)]
 mod test_kzg {
-    use std::{ops::Mul, collections::BTreeMap};
+    use std::{collections::BTreeMap, ops::Mul};
 
     use crate::utils::srs::unsafe_setup_from_tau;
     use ark_bn254::{Bn254, Fr as F, G1Projective, G2Projective};
-    use ark_ec::{Group, pairing::Pairing};
+    use ark_ec::{pairing::Pairing, Group};
+    use ark_ff::{Field, Zero};
     use ark_poly::{univariate::DensePolynomial, DenseUVPolynomial, Polynomial};
     use ark_std::{test_rng, UniformRand};
-    use ark_ff::{Zero, Field};
 
     use super::{Kzg, PK, VK};
 
@@ -193,7 +193,7 @@ mod test_kzg {
         let a_poly = DensePolynomial::from_coefficients_slice(&a_coeffs);
 
         let tau = F::from(100);
-        let srs = unsafe_setup_from_tau::<G1Projective>(2*n - 1, tau);
+        let srs = unsafe_setup_from_tau::<G1Projective>(2 * n - 1, tau);
 
         let shift_factor = srs.len() - 1 - (n - 1);
         let tau_pow_shift = G2Projective::generator().mul(tau.pow(&[shift_factor as u64]));

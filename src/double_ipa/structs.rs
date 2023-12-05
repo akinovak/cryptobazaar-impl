@@ -1,5 +1,5 @@
+use crate::double_pedersen_schnorr::structs::Proof as PSProof;
 use crate::fold_lagrange::structs::Proof as LFProof;
-use crate::pedersen_schnorr::structs::Proof as PSProof;
 use ark_ec::CurveGroup;
 use ark_ff::FftField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};

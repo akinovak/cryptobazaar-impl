@@ -22,17 +22,43 @@ impl<C: CurveGroup> Transcript<C> {
         self.tr.send_message(b"verifiable-folding-instance", &data);
     }
 
-    pub(crate) fn send_oracles(&mut self, r: &C::Affine, r_degree: &C::Affine, q: &C::Affine) {
+    pub(crate) fn send_blinders(&mut self, s: &C::Affine, blinder: &C::Affine) {
         let mut data = Vec::new();
 
-        r.serialize_uncompressed(&mut data).unwrap();
-        self.tr.send_message(b"r", &data);
+        s.serialize_uncompressed(&mut data).unwrap();
+        self.tr.send_message(b"s", &data);
 
-        r_degree.serialize_uncompressed(&mut data).unwrap();
-        self.tr.send_message(b"r_degree", &data);
+        blinder.serialize_uncompressed(&mut data).unwrap();
+        self.tr.send_message(b"blinder", &data);
+    }
 
-        q.serialize_uncompressed(&mut data).unwrap();
-        self.tr.send_message(b"q", &data);
+    pub(crate) fn second_round(
+        &mut self,
+        z_1: &C::ScalarField,
+        z_2: &C::ScalarField,
+        r_cm: &C::Affine,
+        r_degree_cm: &C::Affine,
+        q_cm: &C::Affine,
+    ) {
+        let mut points_data = Vec::new();
+        let mut scalars_data = Vec::new();
+
+        r_cm.serialize_uncompressed(&mut points_data).unwrap();
+        self.tr.send_message(b"r", &points_data);
+
+        r_degree_cm
+            .serialize_uncompressed(&mut points_data)
+            .unwrap();
+        self.tr.send_message(b"r_degree", &points_data);
+
+        q_cm.serialize_uncompressed(&mut points_data).unwrap();
+        self.tr.send_message(b"q", &points_data);
+
+        z_1.serialize_uncompressed(&mut scalars_data).unwrap();
+        self.tr.send_message(b"z_1", &scalars_data);
+
+        z_2.serialize_uncompressed(&mut scalars_data).unwrap();
+        self.tr.send_message(b"z_2", &scalars_data);
     }
 
     pub(crate) fn send_openings(
@@ -55,6 +81,10 @@ impl<C: CurveGroup> Transcript<C> {
 
         q_opening.serialize_uncompressed(&mut data).unwrap();
         self.tr.send_message(b"q_opening", &data);
+    }
+
+    pub(crate) fn get_c(&mut self) -> C::ScalarField {
+        self.tr.squeeze_challenge(b"c")
     }
 
     pub(crate) fn get_opening_challenge(&mut self) -> C::ScalarField {

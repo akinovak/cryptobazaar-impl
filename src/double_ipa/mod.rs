@@ -5,12 +5,12 @@ use ark_ec::{AffineRepr, CurveGroup, VariableBaseMSM};
 use ark_ff::{Field, Zero};
 use ark_std::{cfg_iter, rand::RngCore, UniformRand};
 
-use crate::fold_lagrange::{structs::Instance as LFInstance, Argument as LFArgument};
-use crate::kzg::{PK as KzgPk, VK as KzgVk};
-use crate::pedersen_schnorr::{
+use crate::double_pedersen_schnorr::{
     structs::{Instance as PSInstance, Witness as PSWitness},
     Argument as PSArgument,
 };
+use crate::fold_lagrange::{structs::Instance as LFInstance, Argument as LFArgument};
+use crate::kzg::{PK as KzgPk, VK as KzgVk};
 use crate::utils::folding::compute_folding_coeffs;
 use crate::utils::{is_pow_2, powers_of_x};
 
@@ -341,7 +341,7 @@ impl<const N: usize, const LOG_N: usize, E: Pairing> DoubleInnerProduct<N, LOG_N
 }
 
 #[cfg(test)]
-mod ipa_tests {
+mod double_ipa_tests {
     use std::ops::Mul;
 
     use ark_bn254::{Bn254, Fr as F, G1Affine, G1Projective, G2Projective};
