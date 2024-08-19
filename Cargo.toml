@@ -20,8 +20,9 @@ rand_chacha = "0.3.1"
 criterion = { version = "0.4", features = ["html_reports"] }
 
 [features]
-default = [ "parallel" ]
+default = [ "parallel", "asm" ]
 parallel = [ "rayon", "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
+asm = [ "ark-ff/asm" ]
 
 [[bench]]
 name = "encode"
@@ -32,5 +33,17 @@ name = "auctioneer"
 harness = false
 
 [[bench]]
-name = "double_ipa"
+name = "ipa"
+harness = false
+
+[[bench]]
+name = "lderivative"
+harness = false
+
+[[bench]]
+name = "veceq"
+harness = false
+
+[[bench]]
+name = "nonzero"
 harness = false

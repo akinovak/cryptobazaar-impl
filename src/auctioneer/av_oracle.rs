@@ -5,12 +5,12 @@ use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::{One, Zero};
 
 // TODO: handle errors instead of panics
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct AVOracle<const B: usize, C: CurveGroup> {
     state: OracleState,
-    first_msgs: [C::Affine; B],
+    first_msgs: Vec<C::Affine>,
     first_msgs_registered: usize,
-    second_msgs: [C::Affine; B],
+    second_msgs: Vec<C::Affine>,
     second_msgs_registered: usize,
 }
 
@@ -18,9 +18,9 @@ impl<const B: usize, C: CurveGroup> AVOracle<B, C> {
     pub fn new() -> Self {
         Self {
             state: OracleState::Round1Ongoing,
-            first_msgs: [C::Affine::zero(); B],
+            first_msgs: vec![C::Affine::zero(); B],
             first_msgs_registered: 0,
-            second_msgs: [C::Affine::zero(); B],
+            second_msgs: vec![C::Affine::zero(); B],
             second_msgs_registered: 0,
         }
     }
@@ -139,7 +139,13 @@ mod av_oracle_tests {
     use std::ops::Mul;
 
     use super::AVOracle;
-    const B: usize = 10;
+    const B: usize = 1024;
+    use rayon::prelude::*;
+
+    #[test]
+    fn rayon() {
+        println!("Number of CPU cores utilized: {}", rayon::current_num_threads());
+    }
 
     #[test]
     fn no_veto() {

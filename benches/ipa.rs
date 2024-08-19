@@ -6,16 +6,16 @@ use ark_poly::{EvaluationDomain, GeneralEvaluationDomain};
 use ark_std::rand::RngCore;
 use ark_std::UniformRand;
 use cipher_bazaar::{
-    double_ipa::{
+    ipa::{
         structs::{Instance, Witness},
-        DoubleInnerProduct,
+        InnerProduct,
     },
     kzg::PK,
     utils::srs::unsafe_setup_from_tau,
 };
 use criterion::{criterion_group, criterion_main, Criterion};
 
-/* RUN WITH: cargo bench --bench double_ipa */
+/* RUN WITH: cargo bench --bench ipa */
 
 const N: usize = 8192;
 const LOG_N: usize = 13;
@@ -26,7 +26,7 @@ fn prove<const N: usize, E: Pairing, R: RngCore>(
     pk: &PK<E>,
     rng: &mut R,
 ) {
-    DoubleInnerProduct::<N, LOG_N, E>::prove::<_>(instance, witness, pk, rng);
+    InnerProduct::<N, LOG_N, E>::prove::<_>(instance, witness, pk, rng);
 }
 
 fn criterion_benchmark(criterion: &mut Criterion) {
@@ -57,7 +57,6 @@ fn criterion_benchmark(criterion: &mut Criterion) {
 
     let instance = Instance::<N, G1Projective> {
         ac: ac.into(),
-        lagrange_basis: lagrange_basis.try_into().unwrap(),
         b: b.try_into().unwrap(),
         h_base: h_base.into(),
         c: c.try_into().unwrap(),

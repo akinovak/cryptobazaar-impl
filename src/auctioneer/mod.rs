@@ -9,6 +9,7 @@ use ark_std::cfg_iter_mut;
 use rayon::prelude::*;
 
 mod av_oracle;
+// mod av_oracle_dynamic;
 pub(crate) mod enums;
 
 #[derive(Clone)]
@@ -16,7 +17,7 @@ pub struct Auctioneer<const N: usize, const B: usize, C: CurveGroup> {
     state: OracleState,
     first_msgs_registered: usize,
     second_msgs_registered: usize,
-    av_oracles: [AVOracle<B, C>; N],
+    av_oracles: Vec<AVOracle<B, C>>,
 }
 
 impl<const N: usize, const B: usize, C: CurveGroup> Auctioneer<N, B, C> {
@@ -25,7 +26,7 @@ impl<const N: usize, const B: usize, C: CurveGroup> Auctioneer<N, B, C> {
             state: OracleState::Round1Ongoing,
             first_msgs_registered: 0,
             second_msgs_registered: 0,
-            av_oracles: [AVOracle::new(); N],
+            av_oracles: vec![AVOracle::new(); N],
         }
     }
 
@@ -100,8 +101,8 @@ mod auctioneer_tests {
 
     use super::Auctioneer;
 
-    const N: usize = 10;
-    const B: usize = 5;
+    const N: usize = 128;
+    const B: usize = 32;
 
     #[test]
     fn test_many_vetos() {

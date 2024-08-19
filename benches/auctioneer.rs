@@ -100,8 +100,8 @@ fn bench_first_round<const N: usize, const B: usize>(
 }
 
 fn round_1(c: &mut Criterion) {
-    const N: usize = 100;
-    const B: usize = 30;
+    const N: usize = 8192;
+    const B: usize = 256;
 
     let a = setup_round_1::<N, B>();
     let id = format!("Round1: range = {}, bidders = {}", N, B);
@@ -109,8 +109,8 @@ fn round_1(c: &mut Criterion) {
 }
 
 fn round_2(c: &mut Criterion) {
-    const N: usize = 100;
-    const B: usize = 30;
+    const N: usize = 32;
+    const B: usize = 32;
 
     let a = setup_round_2::<N, B>();
     let id = format!("Round2: range = {}, bidders = {}", N, B);
@@ -118,7 +118,7 @@ fn round_2(c: &mut Criterion) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    round_1(c);
+    // round_1(c);
     round_2(c);
 }
 
