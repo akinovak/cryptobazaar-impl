@@ -29,12 +29,12 @@ We have defined six benchmarks to evaluate key areas of the library that should 
 5. **Benchmark 5: `auctioneer_r1`**
     - Measures the performance of the auctioneer to compute AV matrix Y given number of bidders and price range
     - Matches `Table 1` part `(b)` 
-    - Run with ``cargo bench --bench auctioneer``
+    - Run with ``cargo bench --bench auctioneer_r1``
 
 6. **Benchmark 6: `auctioneer_r2`**
     - Measures the performance of the auctioneer to compute results vector R
     - Matches `Table 1` part `(c)` 
-    - Run with ``cargo bench --bench auctioneer``
+    - Run with ``cargo bench --bench auctioneer_r2``
 
 
 
