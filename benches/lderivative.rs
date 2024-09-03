@@ -2,10 +2,9 @@ use std::ops::Mul;
 
 use cipher_bazaar::kzg::{Kzg, PK, VK};
 use ark_ec::{pairing::Pairing, Group};
-use ark_ff::{batch_inversion, FftField, Field, One, Zero};
+use ark_ff::{One, Zero};
 use ark_poly::{
-    univariate::DensePolynomial, DenseUVPolynomial, EvaluationDomain, GeneralEvaluationDomain,
-    Polynomial,
+    univariate::DensePolynomial, DenseUVPolynomial, EvaluationDomain, GeneralEvaluationDomain
 };
 use ark_bn254::{Bn254, Fr as F, G1Projective, G2Projective};
 use cipher_bazaar::{
