@@ -109,8 +109,8 @@ fn round_1(c: &mut Criterion) {
 }
 
 fn round_2(c: &mut Criterion) {
-    const N: usize = 32;
-    const B: usize = 32;
+    const N: usize = 8192;
+    const B: usize = 256;
 
     let a = setup_round_2::<N, B>();
     let id = format!("Round2: range = {}, bidders = {}", N, B);
