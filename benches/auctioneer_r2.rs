@@ -7,7 +7,7 @@ use ark_std::{test_rng, UniformRand};
 use cipher_bazaar::auctioneer::Auctioneer;
 use criterion::{criterion_group, criterion_main, Criterion};
 
-/* RUN WITH: cargo bench --bench auctioneer */
+/* RUN WITH: cargo bench --bench auctioneer_r2 */
 
 fn setup_round_1<const N: usize, const B: usize>() -> Auctioneer<N, B, G1Projective> {
     let mut rng = test_rng();

@@ -29,7 +29,11 @@ name = "encode"
 harness = false
 
 [[bench]]
-name = "auctioneer"
+name = "auctioneer_r1"
+harness = false
+
+[[bench]]
+name = "auctioneer_r2"
 harness = false
 
 [[bench]]
