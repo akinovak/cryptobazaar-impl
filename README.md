@@ -32,12 +32,12 @@ There are six microbenchmarks, namely for the computation of the four validity p
     cargo bench --bench ipa
     ```
 
-- **Benchmark 5: Compute AV matrix $Y$ (Table 1b)**
+- **Benchmark 5: AV matrix $Y$ (Table 1b)**
     ```
     cargo bench --bench auctioneer_r1
     ```
 
-- **Benchmark 6: Compute results vector $R$ (Table 1c)**
+- **Benchmark 6: Results vector $R$ (Table 1c)**
     ```
     cargo bench --bench auctioneer_r2
     ```
