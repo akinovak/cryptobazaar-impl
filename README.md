@@ -1,6 +1,6 @@
 # Cryptobazaar: Private Sealed-bid Auctions at Scale
 
-This repository provides a Rust implementation of the Cryptobazaar auction protocol and in particular all of the validity proofs, the AV protocol, and the computation of the results vector.
+This repository provides a Rust implementation of the Cryptobazaar auction protocol and, in particular, includes the code for all of the validity proofs, the AV protocol, and the results vector computation.
 
 To replicate the microbenchmarks provided in Table 1 of the paper, follow the instructions below.
 
