@@ -6,8 +6,9 @@ use ark_ff::Zero;
 use ark_std::{test_rng, UniformRand};
 use cipher_bazaar::auctioneer::Auctioneer;
 use criterion::{criterion_group, criterion_main, Criterion};
+use std::env;
 
-/* RUN WITH: cargo bench --bench auctioneer_r1 */
+/* RUN WITH: M=32 N=128 cargo bench --bench auctioneer_r1 */
 
 fn setup_round_1<const N: usize, const B: usize>() -> Auctioneer<N, B, G1Projective> {
     let mut rng = test_rng();
@@ -99,12 +100,9 @@ fn bench_first_round<const N: usize, const B: usize>(
     a_clone.output_first_round()
 }
 
-fn round_1(c: &mut Criterion) {
-    const N: usize = 8192;
-    const B: usize = 256;
-
-    let a = setup_round_1::<N, B>();
-    let id = format!("Round1: range = {}, bidders = {}", N, B);
+fn round_1<const M: usize, const N: usize>(c: &mut Criterion) {
+    let a = setup_round_1::<N, M>();
+    let id = format!("Round1: range = {}, bidders = {}", N, M);
     c.bench_function(&id, |b| b.iter(|| bench_first_round(a.clone())));
 }
 
@@ -118,8 +116,30 @@ fn round_2(c: &mut Criterion) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    round_1(c);
-    // round_2(c);
+    // bidders
+    let m: usize = env::var("M")
+    .ok()
+    .and_then(|s| s.parse().ok())
+    .unwrap_or(32); // default value
+    
+    // range
+    let n: usize = env::var("N")
+    .ok()
+    .and_then(|s| s.parse().ok())
+    .unwrap_or(128); // default value
+
+    match (m, n) {
+        (32, 128) => round_1::<32, 128>(c),
+        (32, 1024) => round_1::<32, 1024>(c),
+        (32, 8192) => round_1::<32, 8192>(c),
+        (128, 128) => round_1::<128, 128>(c),
+        (128, 1024) => round_1::<128, 1024>(c),
+        (128, 8192) => round_1::<128, 8192>(c),
+        (256, 128) => round_1::<256, 128>(c),
+        (256, 1024) => round_1::<256, 1024>(c),
+        (256, 8192) => round_1::<256, 8192>(c),
+        _ => panic!("Unsupported parameter combination (M, N): ({}, {})", m, n),
+    }
 }
 
 criterion_group!(benches, criterion_benchmark);

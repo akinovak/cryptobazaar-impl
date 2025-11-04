@@ -42,13 +42,30 @@ There are six microbenchmarks, namely for the computation of the four validity p
 
 - **Benchmark 5: AV matrix $Y$ (Table 1b)**
     ```
-    cargo bench --bench auctioneer_r1
+    M=32 N=128 cargo bench --bench auctioneer_r1
+    M=32 N=1024 cargo bench --bench auctioneer_r1
+    M=32 N=8192 cargo bench --bench auctioneer_r1
+    M=128 N=128 cargo bench --bench auctioneer_r1
+    M=128 N=1024 cargo bench --bench auctioneer_r1
+    M=128 N=8192 cargo bench --bench auctioneer_r1
+    M=256 N=128 cargo bench --bench auctioneer_r1
+    M=256 N=1024 cargo bench --bench auctioneer_r1
+    M=256 N=8192 cargo bench --bench auctioneer_r1
     ```
 
 - **Benchmark 6: Results vector $R$ (Table 1c)**
     ```
-    cargo bench --bench auctioneer_r2
+    M=32 N=128 cargo bench --bench auctioneer_r2
+    M=32 N=1024 cargo bench --bench auctioneer_r2
+    M=32 N=8192 cargo bench --bench auctioneer_r2
+    M=128 N=128 cargo bench --bench auctioneer_r2
+    M=128 N=1024 cargo bench --bench auctioneer_r2
+    M=128 N=8192 cargo bench --bench auctioneer_r2
+    M=256 N=128 cargo bench --bench auctioneer_r2
+    M=256 N=1024 cargo bench --bench auctioneer_r2
+    M=256 N=8192 cargo bench --bench auctioneer_r2
     ```
+    
 
 
 
