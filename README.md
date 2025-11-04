@@ -14,22 +14,30 @@ There are six microbenchmarks, namely for the computation of the four validity p
 
 - **Benchmark 1: Validity proof $\pi_{x_i}$ (Table 1a)**
     ```
-    cargo bench --bench veceq
+    N=128 cargo bench --bench veceq
+    N=1024 cargo bench --bench veceq
+    N=8192 cargo bench --bench veceq
     ```
 
 - **Benchmark 2: Validity proof $\pi_{r_i}$ (Table 1a)**
     ```
-    cargo bench --bench nonzero
+    N=128 cargo bench --bench nonzero
+    N=1024 cargo bench --bench nonzero
+    N=8192 cargo bench --bench nonzero
     ```
 
 - **Benchmark 3: Validity proof $\pi_{b_i}$ (Table 1a)**
     ```
-    cargo bench --bench lderivative
+    N=128 cargo bench --bench lderivative
+    N=1024 cargo bench --bench lderivative
+    N=8192 cargo bench --bench lderivative
     ```
 
 - **Benchmark 4: Validity proof $\pi_{Z_i}$ (Table 1a)**
     ```
-    cargo bench --bench ipa
+    N=128 cargo bench --bench ipa
+    N=1024 cargo bench --bench ipa
+    N=8192 cargo bench --bench ipa
     ```
 
 - **Benchmark 5: AV matrix $Y$ (Table 1b)**

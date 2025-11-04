@@ -16,7 +16,7 @@ use cipher_bazaar::{
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::env;
 
-/* RUN WITH: BENCH_PARAM={128,1024,8192} cargo bench --bench ipa */
+/* RUN WITH: N={128,1024,8192} cargo bench --bench ipa */
 
 fn prove<const N: usize, const LOG_N: usize, E: Pairing, R: RngCore>(
     instance: &Instance<N, E::G1>,
@@ -28,7 +28,7 @@ fn prove<const N: usize, const LOG_N: usize, E: Pairing, R: RngCore>(
 }
 
 fn criterion_benchmark(criterion: &mut Criterion) {
-    let n: usize = env::var("BENCH_PARAM")
+    let n: usize = env::var("N")
     .ok()
     .and_then(|s| s.parse().ok())
     .unwrap_or(128); // default value
@@ -37,7 +37,7 @@ fn criterion_benchmark(criterion: &mut Criterion) {
         128 => run::<128, 7>(criterion),
         1024 => run::<1024, 10>(criterion),
         8192 => run::<8192, 13>(criterion),
-        _ => panic!("Unsupported instance size for benchmark"),
+        _ => panic!("Unsupported instance size N"),
     }
 }
 
