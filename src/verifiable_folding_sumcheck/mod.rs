@@ -83,7 +83,7 @@ impl<E: Pairing> Argument<E> {
         // // deg(r_mod_x) <= n - 2
         let r_degree = {
             let shift_factor = pk.srs.len() - 1 - (instance.n - 2);
-            let mut coeffs = r_mod_x.coeffs().clone().to_vec();
+            let mut coeffs = r_mod_x.coeffs().to_vec();
             let mut shifted_coeffs = vec![E::ScalarField::zero(); shift_factor];
             shifted_coeffs.append(&mut coeffs);
             DensePolynomial::from_coefficients_slice(&shifted_coeffs)
