@@ -1,4 +1,3 @@
-
 table1a:
 	N=128 cargo bench --bench veceq
 	N=1024 cargo bench --bench veceq
