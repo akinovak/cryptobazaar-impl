@@ -1,35 +1,41 @@
-table1a:
-	N=128 cargo bench --bench veceq
-	N=1024 cargo bench --bench veceq
-	N=8192 cargo bench --bench veceq
-	N=128 cargo bench --bench nonzero
-	N=1024 cargo bench --bench nonzero
-	N=8192 cargo bench --bench nonzero
-	N=128 cargo bench --bench lderivative
-	N=1024 cargo bench --bench lderivative
-	N=8192 cargo bench --bench lderivative
-	N=128 cargo bench --bench ipa
-	N=1024 cargo bench --bench ipa
-	N=8192 cargo bench --bench ipa
+proofxi:
+	N=128 cargo bench --bench veceq -- --sample-size 25 --measurement-time 60
+	N=1024 cargo bench --bench veceq -- --sample-size 25 --measurement-time 60
+	N=8192 cargo bench --bench veceq -- --sample-size 25 --measurement-time 60
 
-table1b:
-	M=32 N=128 cargo bench --bench auctioneer_r1
-	M=32 N=1024 cargo bench --bench auctioneer_r1
-	M=32 N=8192 cargo bench --bench auctioneer_r1
-	M=128 N=128 cargo bench --bench auctioneer_r1
-	M=128 N=1024 cargo bench --bench auctioneer_r1
-	M=128 N=8192 cargo bench --bench auctioneer_r1
-	M=256 N=128 cargo bench --bench auctioneer_r1
-	M=256 N=1024 cargo bench --bench auctioneer_r1
-	M=256 N=8192 cargo bench --bench auctioneer_r1
+proofri:
+	N=128 cargo bench --bench nonzero -- --sample-size 25 --measurement-time 60
+	N=1024 cargo bench --bench nonzero -- --sample-size 25 --measurement-time 60
+	N=8192 cargo bench --bench nonzero -- --sample-size 25 --measurement-time 60
 
-table1c:
-	M=32 N=128 cargo bench --bench auctioneer_r2
-	M=32 N=1024 cargo bench --bench auctioneer_r2
-	M=32 N=8192 cargo bench --bench auctioneer_r2
-	M=128 N=128 cargo bench --bench auctioneer_r2
-	M=128 N=1024 cargo bench --bench auctioneer_r2
-	M=128 N=8192 cargo bench --bench auctioneer_r2
-	M=256 N=128 cargo bench --bench auctioneer_r2
-	M=256 N=1024 cargo bench --bench auctioneer_r2
-	M=256 N=8192 cargo bench --bench auctioneer_r2
+proofbi:
+	N=128 cargo bench --bench lderivative -- --sample-size 25 --measurement-time 60
+	N=1024 cargo bench --bench lderivative -- --sample-size 25 --measurement-time 60
+	N=8192 cargo bench --bench lderivative -- --sample-size 25 --measurement-time 60
+
+proofzi:
+	N=128 cargo bench --bench ipa -- --sample-size 25 --measurement-time 60
+	N=1024 cargo bench --bench ipa -- --sample-size 25 --measurement-time 60
+	N=8192 cargo bench --bench ipa -- --sample-size 25 --measurement-time 60
+
+avmatrix:
+	M=32 N=128 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
+	M=32 N=1024 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
+	M=32 N=8192 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
+	M=128 N=128 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
+	M=128 N=1024 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
+	M=128 N=8192 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 75
+	M=256 N=128 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
+	M=256 N=1024 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
+	M=256 N=8192 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 75
+
+results:
+	M=32 N=128 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
+	M=32 N=1024 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
+	M=32 N=8192 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
+	M=128 N=128 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
+	M=128 N=1024 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
+	M=128 N=8192 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 75
+	M=256 N=128 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
+	M=256 N=1024 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
+	M=256 N=8192 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 75
