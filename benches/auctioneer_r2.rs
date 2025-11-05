@@ -10,36 +10,6 @@ use std::env;
 
 /* RUN WITH: M=32 N=1024 cargo bench --bench auctioneer_r2 */
 
-fn setup_round_1<const N: usize, const B: usize>() -> Auctioneer<N, B, G1Projective> {
-    let mut rng = test_rng();
-    let g = G1Projective::generator();
-
-    let mut a = Auctioneer::<N, B, G1Projective>::new();
-    let mut secrets = vec![vec![F::zero(); N]; B];
-    let mut first_msgs = vec![vec![G1Affine::zero(); N]; B];
-
-    // initialize n msgs fro each party
-    for i in 0..B {
-        for j in 0..N {
-            secrets[i][j] = F::rand(&mut rng);
-        }
-    }
-
-    // initialize n msgs fro each party
-    for i in 0..B {
-        for j in 0..N {
-            first_msgs[i][j] = g.mul(secrets[i][j]).into();
-        }
-    }
-
-    // each party sends it's first round msgs
-    for i in 0..B {
-        a.register_msgs(&first_msgs[i], i).unwrap();
-    }
-
-    a
-}
-
 fn setup_round_2<const N: usize, const B: usize>() -> Auctioneer<N, B, G1Projective> {
     let mut rng = test_rng();
     let g = G1Projective::generator();
@@ -91,22 +61,6 @@ fn bench_second_round<const N: usize, const B: usize>(
 ) -> Vec<G1Affine> {
     let mut a_clone = a.clone();
     a_clone.output_second_round()
-}
-
-fn bench_first_round<const N: usize, const B: usize>(
-    a: Auctioneer<N, B, G1Projective>,
-) -> Vec<Vec<G1Affine>> {
-    let mut a_clone = a.clone();
-    a_clone.output_first_round()
-}
-
-fn round_1(c: &mut Criterion) {
-    const N: usize = 8192;
-    const B: usize = 256;
-
-    let a = setup_round_1::<N, B>();
-    let id = format!("Round1: range = {}, bidders = {}", N, B);
-    c.bench_function(&id, |b| b.iter(|| bench_first_round(a.clone())));
 }
 
 fn round_2<const M: usize, const N: usize>(c: &mut Criterion) {

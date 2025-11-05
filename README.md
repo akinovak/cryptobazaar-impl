@@ -10,7 +10,16 @@ To setup Rust, please follow the [official installation instructions](https://ww
 
 ## Benchmarks
 
-There are six microbenchmarks, namely for the computation of the four validity proofs, the AV protocol, and the results vector:
+There are six different microbenchmarks in total, namely for the computation of the four validity proofs, the AV protocol, and the results vector. 
+To reproduce the benchmarks presented in Table 1, simply execute:
+
+```
+make table1a
+make table1b
+make table1c
+```
+
+For more fine-grained benchmarking, consider the following instructions.
 
 - **Benchmark 1: Validity proof $\pi_{x_i}$ (Table 1a)**
     ```

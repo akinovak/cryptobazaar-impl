@@ -37,12 +37,11 @@ fn criterion_benchmark(criterion: &mut Criterion) {
         128 => run::<128, 7>(criterion),
         1024 => run::<1024, 10>(criterion),
         8192 => run::<8192, 13>(criterion),
-        _ => panic!("Unsupported instance size N"),
+        _ => panic!("Unsupported price range N"),
     }
 }
 
 fn run<const N:usize, const LOG_N: usize>(criterion: &mut Criterion) {
-
     let mut rng = ark_std::test_rng();
     let domain = GeneralEvaluationDomain::<F>::new(N).unwrap();
 
@@ -79,7 +78,7 @@ fn run<const N:usize, const LOG_N: usize>(criterion: &mut Criterion) {
         a: a.try_into().unwrap(),
     };
 
-    let id = format!("proof {}", N);
+    let id = format!(r"proof \pi_{{Z_i}} N={}", N);
     criterion.bench_function(&id, |b| {
         b.iter(|| prove::<N, LOG_N, Bn254, _>(&instance, &witness, &pk, &mut rng))
     });
