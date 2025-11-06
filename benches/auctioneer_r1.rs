@@ -49,7 +49,7 @@ fn bench_first_round<const N: usize, const B: usize>(
 
 fn round_1<const M: usize, const N: usize>(c: &mut Criterion) {
     let a = setup_round_1::<N, M>();
-    let id = format!("Round1: range = {}, bidders = {}", N, M);
+    let id = format!("Auctioneer round 1, AV: range = {}, bidders = {}", N, M);
     c.bench_function(&id, |b| b.iter(|| bench_first_round(a.clone())));
 }
 
