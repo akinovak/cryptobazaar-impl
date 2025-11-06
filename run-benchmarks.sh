@@ -41,10 +41,10 @@ M=32 N=1024 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-
 M=32 N=8192 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
 M=128 N=128 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
 M=128 N=1024 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
-M=128 N=8192 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 75
+M=128 N=8192 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 90
 M=256 N=128 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
 M=256 N=1024 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 60
-M=256 N=8192 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 75
+M=256 N=8192 cargo bench --bench auctioneer_r1 -- --sample-size 25 --measurement-time 130
 
 echo "----------------------------------------------------------"
 echo "Running benchmarks for results vector"
@@ -55,7 +55,7 @@ M=32 N=1024 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-
 M=32 N=8192 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
 M=128 N=128 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
 M=128 N=1024 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
-M=128 N=8192 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 75
+M=128 N=8192 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 90
 M=256 N=128 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
 M=256 N=1024 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 60
-M=256 N=8192 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 75
+M=256 N=8192 cargo bench --bench auctioneer_r2 -- --sample-size 25 --measurement-time 90
