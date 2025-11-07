@@ -6,9 +6,13 @@ This repository provides a Rust implementation of the Cryptobazaar auction proto
 
 To setup Rust, please follow the [official installation instructions](https://www.rust-lang.org/tools/install).
 
+## Tests
+
+To run the Cryptobazaar tests, execute `cargo test` in the root folder.
+
 ## Benchmarks
 
 There are six different microbenchmarks in total, namely for the computation of the four validity proofs, the AV protocol, and the results vector. 
 
-To replicate the microbenchmarks provided in Table 1 of the paper, execute `./run-benchmarks.sh`.
+To replicate the microbenchmarks provided in Table 1 of the paper, execute `./run-benchmarks.sh` in the root folder.
 

@@ -202,7 +202,7 @@ mod test_kzg {
 
         // we want to check that a is of degree <= n-1
         let a_degree = {
-            let mut coeffs = a_poly.coeffs().clone().to_vec();
+            let mut coeffs = a_poly.coeffs().to_vec();
             let mut shifted_coeffs = vec![F::zero(); shift_factor];
             shifted_coeffs.append(&mut coeffs);
             DensePolynomial::from_coefficients_slice(&shifted_coeffs)

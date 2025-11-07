@@ -140,7 +140,6 @@ mod av_oracle_tests {
 
     use super::AVOracle;
     const B: usize = 1024;
-    use rayon::prelude::*;
 
     #[test]
     fn rayon() {
