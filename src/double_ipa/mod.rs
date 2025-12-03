@@ -170,13 +170,13 @@ impl<const N: usize, const LOG_N: usize, E: Pairing> DoubleInnerProduct<N, LOG_N
 
             #[cfg(not(feature = "parallel"))]
             let (x_left_chunks, b1_right_chunks, b2_right_chunks) = (
-                x_left.chunks(chunk_size),
+                a_left.chunks(chunk_size),
                 b1_right.chunks(chunk_size),
                 b2_right.chunks(chunk_size),
             );
             #[cfg(not(feature = "parallel"))]
             let (x_right_chunks, b1_left_chunks, b2_left_chunks) = (
-                x_right.chunks(chunk_size),
+                a_right.chunks(chunk_size),
                 b1_left.chunks(chunk_size),
                 b2_left.chunks(chunk_size),
             );

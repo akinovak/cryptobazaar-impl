@@ -20,7 +20,7 @@ rand_chacha = "0.3.1"
 criterion = { version = "0.4", default-features = false }
 
 [features]
-default = [ "parallel", "asm" ]
+default = []
 parallel = [ "rayon", "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
 asm = [ "ark-ff/asm" ]
 

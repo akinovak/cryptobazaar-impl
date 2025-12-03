@@ -141,9 +141,13 @@ mod av_oracle_tests {
     use super::AVOracle;
     const B: usize = 1024;
 
+    
     #[test]
     fn rayon() {
+        #[cfg(feature = "parallel")]
         println!("Number of CPU cores utilized: {}", rayon::current_num_threads());
+        #[cfg(not(feature = "parallel"))]
+        println!("Parallel feature not enabled");
     }
 
     #[test]

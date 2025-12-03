@@ -91,11 +91,11 @@ impl<const N: usize, const LOG_N: usize, E: Pairing> InnerProduct<N, LOG_N, E> {
             );
 
             #[cfg(not(feature = "parallel"))]
-            let (a_left_chunks, b1_right_chunks) =
-                (x_left.chunks(chunk_size), b_right.chunks(chunk_size));
+            let (a_left_chunks, b_right_chunks) =
+                (a_left.chunks(chunk_size), b_right.chunks(chunk_size));
             #[cfg(not(feature = "parallel"))]
-            let (a_right_chunks, b1_left_chunks) =
-                (x_right.chunks(chunk_size), b_left.chunks(chunk_size));
+            let (a_right_chunks, b_left_chunks) =
+                (a_right.chunks(chunk_size), b_left.chunks(chunk_size));
 
             let l: E::G1 = a_left_chunks
                 .zip(b_right_chunks)
