@@ -1,16 +1,20 @@
 # Cryptobazaar: Private Sealed-bid Auctions at Scale
 
-This repository provides a Rust implementation of the Cryptobazaar auction protocol and, in particular, includes the code for all of the validity proofs, the AV protocol, and the results vector computation.
+This repository provides a Rust implementation of the [Cryptobazaar](https://eprint.iacr.org/2024/1410) auction protocol and includes the code for all of the validity proofs, the AV protocol, and the results vector computation.
 
 ## Rust
 
 To setup Rust, please follow the [official installation instructions](https://www.rust-lang.org/tools/install). 
 
-Minimum required Rust version: `1.80.1`.
+The minimum required Rust version is `1.80.1`.
 
 ## Tests
 
 To run the Cryptobazaar tests, execute `cargo test` in the root folder.
+
+## Example
+
+To execute a sample Cryptobazaar auction, execute `cargo run --example simple_e2e` in the root folder. The corresponding code showing the protocol flow can be found in `examples/simple_e2e.rs`.
 
 ## Benchmarks
 
@@ -24,9 +28,17 @@ Alternatively, you can run the benchmarks via `Docker` by executing `docker buil
 
 ## Attribution
 
-If you find this code useful in your research, please cite:
+If you find this work useful in your research, please cite it via:
 
-[`Cryptobazaar: Private Sealed-bid Auctions at Scale - Andrija Novakovic, Alireza Kavousi, Kobi Gurkan, Philipp Jovanovic`](https://eprint.iacr.org/2024/1410)
+```
+@inproceedings{novakovic2026cryptobazaar
+    author = {Andrija Novakovic and Alireza Kavousi and Kobi Gurkan and Philipp Jovanovic},
+    title = {Cryptobazaar: Private Sealed-bid Auctions at Scale},
+    booktitle = {33nd Annual Network and Distributed System Security Symposium, {NDSS} 2026, San Diego, California, USA, 23-27 February, 2026},
+    publisher = {The Internet Society},
+    year = {2026},
+}
+```
 
 ## License
 

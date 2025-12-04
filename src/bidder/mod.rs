@@ -1,7 +1,6 @@
 use ark_ec::pairing::Pairing;
 use ark_ec::VariableBaseMSM;
 use rand::{RngCore, SeedableRng};
-use std::ops::Mul;
 
 use crate::{
     bid_encoder::BidEncoder, gates::{
@@ -80,7 +79,7 @@ impl<const P: usize, const N: usize, E: Pairing> Bidder<P, N, E> {
             &ipa_witness,
             &self.pk,
             &mut rng,
-        ); 
+        );
         proof
     }
 }
