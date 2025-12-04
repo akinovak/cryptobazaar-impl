@@ -39,6 +39,14 @@ impl<const P: usize, const N: usize, C: CurveGroup> BidEncoder<P, N, C> {
         }
     }
 
+    pub fn to_ipa_witness(&self) -> Vec<C::ScalarField> {
+        let mut ipa_witness = vec![C::ScalarField::zero(); N];
+        for i in 0..N {
+            ipa_witness[i] = self.f[i] + self.bid[i] * self.r[i];
+        }
+        ipa_witness
+    }
+
     pub fn to_gate_witness<R: RngCore + SeedableRng>(
         &self,
         seed: R::Seed,

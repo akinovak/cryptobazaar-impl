@@ -16,6 +16,7 @@ pub struct Kzg<E: Pairing> {
     _e: PhantomData<E>,
 }
 
+#[derive(Clone)]
 pub struct PK<E: Pairing> {
     pub srs: Vec<E::G1Affine>,
 }

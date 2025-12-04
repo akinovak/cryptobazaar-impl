@@ -1,16 +1,15 @@
 use ark_ec::pairing::Pairing;
+use ark_ec::VariableBaseMSM;
 use rand::{RngCore, SeedableRng};
+use std::ops::Mul;
 
 use crate::{
-    bid_encoder::BidEncoder,
-    gates::{
-        structs::{
+    bid_encoder::BidEncoder, gates::{
+        GatesArgument, structs::{
             Proof as GatesProof, ProverIndex as GProverIndex, VerifierIndex as GVerifierIndex,
             Witness as GatesWitness,
-        },
-        GatesArgument,
-    },
-    kzg::PK as KzgPk,
+        }
+    }, ipa::{InnerProduct, structs::Witness as IPAWitness, structs::Proof as IPAProof, structs::Instance as IPAInstance}, kzg::PK as KzgPk
 };
 
 pub struct Bidder<const P: usize, const N: usize, E: Pairing> {
@@ -18,6 +17,8 @@ pub struct Bidder<const P: usize, const N: usize, E: Pairing> {
     gp_index: GProverIndex<E::ScalarField>,
     gv_index: GVerifierIndex<E::G1>,
     bid_encoder: Option<BidEncoder<P, N, E::G1>>,
+    av_response: Option<Vec<E::G1>>,
+    second_round_msg: Option<Vec<E::G1Affine>>,
 }
 
 impl<const P: usize, const N: usize, E: Pairing> Bidder<P, N, E> {
@@ -29,6 +30,8 @@ impl<const P: usize, const N: usize, E: Pairing> Bidder<P, N, E> {
             gp_index,
             gv_index,
             bid_encoder: None,
+            av_response: None,
+            second_round_msg: None,
         }
     }
     pub fn encode<R: RngCore + SeedableRng>(&mut self, bid: usize, seed: R::Seed) {
@@ -49,11 +52,35 @@ impl<const P: usize, const N: usize, E: Pairing> Bidder<P, N, E> {
         bid_encoder.to_first_av_round()
     }
 
-    pub fn second_round(&self, basis: &[E::G1]) -> Vec<E::G1Affine> {
+    pub fn second_round(&mut self, basis: &[E::G1]) -> Vec<E::G1Affine> {
         let bid_encoder = self.bid_encoder.as_ref().unwrap();
-        bid_encoder.to_second_av_round(&basis)
+        let msg = bid_encoder.to_second_av_round(&basis);
+        self.av_response = Some(basis.to_vec());
+        self.second_round_msg = Some(msg.clone());
+        msg
     }
 
-    // TODO: IPA proofs
-    pub fn prove_honest_execution() {}
+    pub fn prove_honest_execution(&self, lagrange_basis: &[E::G1Affine], h_base: E::G1) -> IPAProof<5, E::G1> {
+        let wtns = self.bid_encoder.as_ref().unwrap().to_ipa_witness();
+        let ipa_witness = IPAWitness { a: wtns.clone().try_into().unwrap() };
+
+        let ac = E::G1::msm(lagrange_basis, &wtns).unwrap();
+        let b: Vec<E::G1Affine> = self.av_response.clone().unwrap().iter().map(|&pt| pt.into()).collect();
+        let c = self.second_round_msg.clone().unwrap();
+        let instance = IPAInstance::<N, E::G1> {
+            ac: ac.into(),
+            b: b.try_into().unwrap(),
+            h_base: h_base.into(),
+            c: c.try_into().unwrap(),
+        };
+
+        let mut rng = ark_std::test_rng();
+        let proof = InnerProduct::<N, 5, E>::prove::<_>(
+            &instance,
+            &ipa_witness,
+            &self.pk,
+            &mut rng,
+        ); 
+        proof
+    }
 }
