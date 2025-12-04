@@ -54,7 +54,6 @@ fn main() {
     // Each bidder computes their second round message based on the AV results together with a correctness proof and sends it to the auctioneer who again registers each message
     for i in 0..bidders.len() {
         let av_i: Vec<G1Projective> = first_round_result.iter().map(|row| row[i].into()).collect();
-        
         let second_msg = bidders[i].second_round(&av_i);
         let _proof = bidders[i].prove_honest_execution(&lagrange_basis, h_base);
         auctioneer.register_msgs(&second_msg, i).unwrap();   
