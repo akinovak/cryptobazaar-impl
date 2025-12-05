@@ -26,7 +26,7 @@ To replicate the microbenchmarks provided in Table 1 of the paper, execute `./ru
 
 Alternatively, you can run the benchmarks via `Docker` by executing `docker build .` in the root folder.
 
-**Note:** The runtime of the benchmarks depends on the used hardware. For example, on an Apple MacBook Pro M2 Max with 96 GB RAM, the benchmarks take about `1h` to finish.
+**Note:** Benchmark runtimes depend on your hardware and CPU architecture. For example, enabling the `asm` feature utilizes AVX instructions on Intel CPUs for faster performance. On Apple Silicon (M1/M2), AVX is not available, so runtimes may differ.For example, on an Apple MacBook Pro M2 Max with 96 GB RAM, the benchmarks take about `1h` to finish.
 
 ## Attribution
 
